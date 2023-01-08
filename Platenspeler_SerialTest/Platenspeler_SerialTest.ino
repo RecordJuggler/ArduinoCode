@@ -2,6 +2,7 @@
 #include <MultiStepper.h>
 #include <AccelStepper.h>
 #include <Servo.h>
+#include "systemPositions.h"
 
 
 //platenspeler:
@@ -10,22 +11,29 @@
 #define STOP 4
 #define RLYOn 12
 #define iLDR A7
+#define armHeight 13  //platenspeler arm hoogte-knop-servo. bereik 0-70 graden
+#define armPos 7      //platenspeler arm positie-servo
 
 //stepper pins
 #define iEndStop 8
-#define stepPin 5
-#define dirPin 6
+#define stepPin 6
+#define dirPin 5
 
 //servo pins
 #define rot 9
 #define clamp 10
 #define tilt 11
 
+
+
 //create classes
 AccelStepper stepper = AccelStepper(1, stepPin, dirPin);
 Servo Clamp;
 Servo Tilt;
 Servo Rotation;
+Servo toneArmHeight;
+Servo toneArmPos;  //150: full left (home), ~107: startpos plate, ~0: endpos plate
+
 
 
 bool running33RPM, running45RPM, LPOn, powerStatus, stopped = false;
@@ -49,11 +57,15 @@ void setup() {
   pinMode(STOP, OUTPUT);
   pinMode(RLYOn, OUTPUT);
   pinMode(iEndStop, INPUT_PULLUP);
-  pinMode(LED_BUILTIN, OUTPUT);
 
   Clamp.attach(clamp);
   Tilt.attach(tilt);
   Rotation.attach(rot);
+
+  toneArmHeight.write(DOWN);  //prevent fast switch
+  toneArmHeight.attach(armHeight);
+  toneArmPos.write(180);
+  toneArmPos.attach(armPos);
 
   stepper.setMaxSpeed(maxVel);  //200mm/s
   stepper.setAcceleration(maxVel);
@@ -78,26 +90,30 @@ void loop() {
 
   if (message.length() > 0) {
     message.trim();
+
     if (message.equalsIgnoreCase("33")) {
       //33 RPM mode
+      //startPlay();
       digitalWrite(RPM33, HIGH);
       Serial.println("start 33 RPM rotation");
       commandActivated = millis();
     } else if (message.equalsIgnoreCase("45")) {
       //45 RPM mode
+      startPlay();
       digitalWrite(RPM45, HIGH);
       Serial.println("start 45 RPM rotation");
       commandActivated = millis();
     } else if (message.equalsIgnoreCase("STOP")) {
       //stop rotation
       digitalWrite(STOP, HIGH);
+      StopPlaying();
       Serial.println("stop any rotation");
       commandActivated = millis();
     } else if (message.equalsIgnoreCase("togglepower")) {
       //toggle relay on or off
       powerStatus = !powerStatus;
       digitalWrite(RLYOn, powerStatus);
-      analogReadActive = false;
+      analogReadActive = false;  //disable analogRead
       Serial.println("toggled relay");
       commandActivated = millis();
     } else {
@@ -122,13 +138,18 @@ void loop() {
     LPOn = analogRead(iLDR) > 100;
     if (donePlaying) {
       stopped = true;
+      StopPlaying();
     }
 
-    digitalWrite(13, donePlaying);
+
     //Serial.println(analogRead(iLDR));
   }
 
-
+  //toneArmHeight.write(0);
+  //delay(2000);
+  //toneArmPos.write(90);
+  //toneArmHeight.write(60);
+  //delay(1000);
 
 
   //leave this line last in loop
@@ -143,6 +164,7 @@ int StepperPos(int pos) {
 void HomeStepper() {
   while (digitalRead(iEndStop)) {
     //keep running up
+    Serial.println("stepper up");
     stepper.runSpeed();
   }
   //if endsensor, stop en set 0 position
@@ -170,11 +192,16 @@ void homingSequence() {
 
      when clamp is not limited, it can be in the way for rotation and tilt, so it needs to be homed first.
   */
-  Clamp.write(90);     //loosen the clamp
-  Rotation.write(97);  //~ middle
-  delay(250);          //wait for it to be outwards at least a bit
-  Tilt.write(98);      //vertical
+  toneArmHeight.write(0);  //DOWN
+  Clamp.write(90);         //loosen the clamp
+  Rotation.write(97);      //~ middle
+  delay(250);              //wait for it to be outwards at least a bit
+  Tilt.write(98);          //vertical
 
+
+  Clamp.detach();
+  Rotation.detach();
+  Tilt.detach();
 
   //home stepper
   HomeStepper();
@@ -185,14 +212,59 @@ void homingSequence() {
 
 
 
+void startPlay() {
+  //move arm down, to allow positioning to go to base without interference
+  toneArmHeightEnum = DOWN;
+  toneArmHeight.write(toneArmHeightEnum);
+  delay(1000);
 
-/*
- * Servo S-curve:
- * Sigmoid function
- * S(x)=A/(1+e^(-Bx+C))
- * A = bereik curve, 0->A
- * B = slope
- * C = shift links/rechts (positief naar rechts)
- * 
- * 
- */
+  //move pos to base
+  toneArmPosEnum = BASE;
+  toneArmPos.write(toneArmPosEnum);
+
+  delay(100);  //wait for it to be at base
+
+  //arm back up
+  toneArmHeightEnum = UP;
+  toneArmHeight.write(toneArmHeightEnum);
+  delay(2000);
+
+  //slowly move arm to START pos
+  for (int i = BASE; i >= START; i--) {
+    toneArmPos.write(i);
+    delay(100);
+  }
+
+  //arm back down
+  toneArmHeightEnum = DOWN;
+  toneArmHeight.write(toneArmHeightEnum);
+}
+
+void StopPlaying() {
+  toneArmPos.write(END);
+  delay(100);
+
+  toneArmHeightEnum = UP;
+  toneArmHeight.write(toneArmHeightEnum);
+  delay(2000);
+
+  for (int i = END; i <= START; i++) {
+    toneArmPos.write(i);
+    delay(50);
+  }
+  //to holder pos
+  for (int i = START; i <= 120; i++) {
+    toneArmPos.write(i);
+    delay(150);
+  }
+
+  toneArmHeightEnum = DOWN;
+  toneArmHeight.write(toneArmHeightEnum);
+  delay(1000);
+
+  //all the way to (second) base
+  for (int i = 120; i <= BASE; i++) {
+    toneArmPos.write(i);
+    delay(100);
+  }
+}
