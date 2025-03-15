@@ -7,7 +7,8 @@ void startPlay() {
       Serial.println("0");
       //move arm down, to allow positioning to go to base without interference
       //toneArmHeightEnum = DOWN;
-      toneArmHeight.write(DOWN);
+      MoveArmHeightServo(DOWN, 1);
+      //toneArmHeight.write(DOWN);
       subroutineMillis = millis();
       subroutineSteps = 1;
       break;

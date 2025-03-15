@@ -1,7 +1,9 @@
 //import libs
-#include <MultiStepper.h>
+//#include <MultiStepper.h>
 #include <AccelStepper.h>
 #include <Servo.h>
+#include <EEPROM.h>
+
 #include "systemPositions.h"
 
 
@@ -20,9 +22,15 @@
 #define dirPin 5
 
 //servo pins
-#define rot 9
-#define clamp 11
-#define tilt 10
+#define rotPin 9
+#define clampPin 11
+#define tiltPin 10
+
+const int RotationEEPROMAddress = 0;
+const int TiltEEPROMAddress = 1;
+const int ClampEEPROMAddress = 2;
+const int ArmHeightEEPROMAddress = 3;
+const int ArmPosEEPROMAddress = 4;
 
 int rpmPin = RPM33;
 
@@ -79,12 +87,50 @@ int ClampTryPos = 90;
 int RotationTryPos = 90;
 int TiltTryPos = 90;
 
+//eeprom, stored data
+byte RotStoredPos, TiltStoredPos, ClampStoredPos, ArmHeightStoredPos, ArmPosStoredPos = 0;
+bool ServoPositionKnown = false;
+
 void setup() {
+  Serial.begin(115200);
   // put your setup code here, to run once:
+
+  //read last known servo positions at startup
+  if (!ServoPositionKnown) {
+    RotStoredPos = EEPROM.read(RotationEEPROMAddress);
+    Serial.println(RotStoredPos);
+    if (RotStoredPos == 255) {
+      //first time boot, no position stored yet
+      RotStoredPos = RotationOut;  //store reference pos
+    }
+    TiltStoredPos = EEPROM.read(TiltEEPROMAddress);
+    Serial.println(TiltStoredPos);
+    if (TiltStoredPos == 255) {
+      TiltStoredPos = TiltVertical;
+    }
+    ClampStoredPos = EEPROM.read(ClampEEPROMAddress);
+    Serial.println(ClampStoredPos);
+    if (ClampStoredPos == 255) {
+      ClampStoredPos = ClampOpen;
+    }
+    ArmHeightStoredPos = EEPROM.read(ArmHeightEEPROMAddress);
+    Serial.println(ArmHeightStoredPos);
+    if (ArmHeightStoredPos == 255) {
+      ArmHeightStoredPos = DOWN;  //DOWN
+    }
+    ArmPosStoredPos = EEPROM.read(ArmPosEEPROMAddress);
+    Serial.println(ArmPosStoredPos);
+    if (ArmPosStoredPos == 255) {
+      ArmPosStoredPos = BASE;
+    }
+
+    ServoPositionKnown = true;
+  }
+
 
   Startup();
 
-  homingSequence();
+  //homingSequence();
 
   CaseStep = jukePiCommand;
   delay(500);
@@ -96,11 +142,57 @@ void loop() {
   while (Serial.available()) {
     char character = Serial.read();
     message += character;
-    delay(1);  //delay to allow characters to be filled into buffer while reading
+    delay(2);  //delay to allow characters to be filled into buffer while reading
   }
 
   if (message.length() > 0) {
     message.trim();
+    /*
+    s - Stepper
+    r - rotation (arm in/out)
+    t - tilt (arm horizontal/vertical)
+    c - clamp (clamp arm in/out)
+    u - up, tone arm up/down
+    i - in, tonearm in/out
+    */
+    //simple move commands
+    if (message[0] == 'x' && message.length() > 2) {
+      if (message.substring(2).toInt() != 0) {
+        int number = message.substring(2).toInt();
+        if (message[1] == 's') {
+          if (number > 0) {
+            //move stepper to absolute position to value above 0
+            stepper.moveTo(StepperPos(number));
+          }
+
+        } else if (message[1] == 'r') {
+          //move rotation
+          MoveRotationServo(number, 1);
+          //Rotation.write(number);
+
+        } else if (message[1] == 't') {
+          //move tilt
+          MoveTiltServo(number, 1);
+          //Tilt.write(number);
+
+        } else if (message[1] == 'c') {
+          //move clamp
+          MoveClampServo(number, 1);
+          //Clamp.write(number);
+
+        } else if (message[1] == 'u') {
+          //move toneArm Up/down
+          MoveArmHeightServo(number, 1);
+          //toneArmHeight.write(number);
+
+        } else if (message[1] == 'i') {
+          //move toneArm in/out
+          MoveArmPosServo(number, 1);
+          //toneArmPos.write(number);
+        }
+      }
+    }
+
     if (message.equalsIgnoreCase("demo")) {
       CaseStep = stepperPlaceTopPos;  //go to top of player
       isHoldingLP = true;
@@ -132,6 +224,20 @@ void loop() {
       digitalWrite(RLYOn, powerStatus);
       analogReadActive = false;  //disable analogRead
       Serial.println("toggled relay");
+      commandActivated = millis();
+
+    } else if (message.equalsIgnoreCase("up")) {
+      //toggle relay on or off
+      MoveArmHeightServo(UP, 1);
+      //toneArmHeight.write(UP);
+      Serial.println("tonearm UP");
+      commandActivated = millis();
+
+    } else if (message.equalsIgnoreCase("down")) {
+      //toggle relay on or off
+      MoveArmHeightServo(DOWN, 1);
+      //toneArmHeight.write(DOWN);
+      Serial.println("tonearm DOWN");
       commandActivated = millis();
 
     } else {
@@ -353,7 +459,7 @@ void loop() {
       break;
 
     //stop the player from playing and move arm away from LP. ready for LP to be picked up afterwards
-    case stopPlaying: //from either JukePi or player end sensor
+    case stopPlaying:  //from either JukePi or player end sensor
       if (transit) {
         Serial.println("stopPlaying");
         subroutineSteps = 0;
@@ -369,9 +475,9 @@ void loop() {
       break;
 
 
-  } //end case
+  }  //end case
 
-//set transit bit
+  //set transit bit
   if (CaseStep != prevStep) {
     transit = true;
     prevStep = CaseStep;
@@ -391,11 +497,15 @@ void loop() {
   if (!blockUpdateTime) {
     prevMillis = millis();
   }
+  //end Loop
 }
 
 
+
+
+
+
 void Startup() {
-  Serial.begin(115200);
 
   pinMode(RPM33, OUTPUT);  //output to transistor to toggle 33 RPM button
   pinMode(RPM45, OUTPUT);  //output to transistor to toggle 45 RPM button
@@ -403,9 +513,20 @@ void Startup() {
   pinMode(RLYOn, OUTPUT);  //output to Relay that switches on the RP (Record Player)
   pinMode(iEndStop, INPUT_PULLUP);
 
-  Clamp.attach(clamp);
-  Tilt.attach(tilt);
-  Rotation.attach(rot);
+  //move servo's to default positions before attach()
+  Rotation.write(RotStoredPos);
+  Tilt.write(TiltStoredPos);
+  Clamp.write(ClampStoredPos);
+  toneArmHeight.write(ArmHeightStoredPos);
+  toneArmPos.write(ArmPosStoredPos);
+
+  //attach servo's
+  Rotation.attach(rotPin);
+  Tilt.attach(tiltPin);
+  Clamp.attach(clampPin);
+
+  toneArmHeight.attach(armHeight);
+  toneArmPos.attach(armPos);
 }
 
 
@@ -432,11 +553,6 @@ void HomeStepper() {
 
 void homingSequence() {
 
-  toneArmHeight.write(DOWN);  //prevent fast switch
-  toneArmHeight.attach(armHeight);
-  toneArmPos.write(BASE);
-  toneArmPos.attach(armPos);
-
   stepper.setMaxSpeed(maxVel);  //200mm/s
   stepper.setAcceleration(maxVel);
   stepper.setSpeed(-1000);  //homing up
@@ -451,8 +567,9 @@ void homingSequence() {
 
      when clamp is not limited, it can be in the way for rotation and tilt, so it needs to be homed first.
   */
-  toneArmHeight.write(0);       //DOWN
-  Clamp.write(90);              //loosen the clamp
+  MoveArmHeightServo(DOWN, 1);
+  toneArmHeight.write(DOWN);    //DOWN
+  Clamp.write(ClampOpen);       //loosen the clamp
   Rotation.write(RotationOut);  //~ middle
   delay(250);                   //wait for it to be outwards at least a bit
   Tilt.write(TiltVertical);     //vertical
@@ -468,5 +585,3 @@ void homingSequence() {
   stepper.setSpeed(-250);  //lower speed
   HomeStepper();
 }
-
-
