@@ -26,7 +26,8 @@ void startPlay() {
 
       //move pos to base
       //toneArmPosEnum = BASE;
-      toneArmPos.write(BASE);
+      MoveArmPosServo(BASE, 1);
+      //toneArmPos.write(BASE);
       toneArmPosition = BASE;
       subroutineMillis = millis();
       subroutineSteps = 3;
@@ -45,7 +46,8 @@ void startPlay() {
 
       //arm back up
       //toneArmHeightEnum = UP;
-      toneArmHeight.write(UP);
+      MoveArmHeightServo(UP, 1);
+      //toneArmHeight.write(UP);
       subroutineMillis = millis();
       subroutineSteps = 5;
       break;
@@ -66,7 +68,8 @@ void startPlay() {
       //for (int i = BASE; i >= START; i--) {
       if (millis() - subroutineMillis >= 100 && toneArmPosition > START) {
         toneArmPosition--;
-        toneArmPos.write(toneArmPosition);
+        MoveArmPosServo(toneArmPosition, 1);
+        //toneArmPos.write(toneArmPosition);
         subroutineMillis = millis();
       } else if (toneArmPosition <= START) {
         subroutineSteps = 7;
@@ -80,7 +83,8 @@ void startPlay() {
 
       //arm back down
       //toneArmHeightEnum = DOWN;
-      toneArmHeight.write(DOWN);
+      MoveArmHeightServo(DOWN, 1);
+      //toneArmHeight.write(DOWN);
       subroutineSteps = 8;
       break;
 
@@ -101,7 +105,8 @@ void StopPlay() {
       Serial.println("Stop 0");
       analogReadActive = false;
       //move arm down, to allow positioning to go to base without interference
-      toneArmPos.write(END);
+      MoveArmPosServo(END, 1);
+      //toneArmPos.write(END);
       toneArmPosition = END;
       subroutineMillis = millis();
       subroutineSteps = 1;
@@ -118,7 +123,8 @@ void StopPlay() {
     case 2:
       Serial.println("2");
 
-      toneArmHeight.write(UP);
+      MoveArmHeightServo(UP, 1);
+      //toneArmHeight.write(UP);
       subroutineMillis = millis();
       subroutineSteps = 3;
       break;
@@ -137,7 +143,8 @@ void StopPlay() {
       //from end to start pos
       if (millis() - subroutineMillis >= 50 && toneArmPosition < START) {
         toneArmPosition++;
-        toneArmPos.write(toneArmPosition);
+        MoveArmPosServo(toneArmPosition, 1);
+        //toneArmPos.write(toneArmPosition);
         subroutineMillis = millis();
       } else if (toneArmPosition >= START) {
         subroutineSteps = 5;
@@ -150,7 +157,8 @@ void StopPlay() {
       //to holder pos
       if (millis() - subroutineMillis >= 150 && toneArmPosition < 130) {
         toneArmPosition++;
-        toneArmPos.write(toneArmPosition);
+        MoveArmPosServo(toneArmPosition, 1);
+        //toneArmPos.write(toneArmPosition);
         subroutineMillis = millis();
       } else if (toneArmPosition >= 130) {
         subroutineSteps = 6;
@@ -161,7 +169,8 @@ void StopPlay() {
       Serial.println("6");
 
       toneArmHeightEnum = DOWN;
-      toneArmHeight.write(DOWN);
+      MoveArmHeightServo(DOWN, 1);
+      //toneArmHeight.write(DOWN);
       subroutineMillis = millis();
       subroutineSteps = 7;
       break;
@@ -179,7 +188,8 @@ void StopPlay() {
 
       if (millis() - subroutineMillis >= 100 && toneArmPosition < BASE) {
         toneArmPosition++;
-        toneArmPos.write(toneArmPosition);
+        MoveArmPosServo(toneArmPosition, 1);
+        //toneArmPos.write(toneArmPosition);
         subroutineMillis = millis();
       } else if (toneArmPosition >= BASE) {
         subroutineSteps = 9;
@@ -196,5 +206,4 @@ void StopPlay() {
       }
       break;
   }
-
 }

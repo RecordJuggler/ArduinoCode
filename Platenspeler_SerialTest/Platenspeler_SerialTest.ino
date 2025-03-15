@@ -338,7 +338,8 @@ void loop() {
       if (transit) {
         Serial.println("rotArmClearancePos");
       }
-      Rotation.write(RotationTryPos);
+      MoveRotationServo(RotationTryPos,1);
+      //Rotation.write(RotationTryPos);
       blockUpdateTime = true;
       if (millis() - prevMillis > 5000) {
         blockUpdateTime = false;
@@ -351,7 +352,8 @@ void loop() {
       if (transit) {
         Serial.println("tiltArmHorizontal");
       }
-      Tilt.write(TiltVertical);
+      MoveTiltServo(TiltVertical,1);
+      //Tilt.write(TiltVertical);
       blockUpdateTime = true;
       if (millis() - prevMillis > 1000) {
         blockUpdateTime = false;
@@ -374,7 +376,8 @@ void loop() {
       }
       if (isHoldingLP) {  //is at top pos, need to release LP
         blockUpdateTime = true;
-        Rotation.write(RotationIn);
+        MoveRotationServo(RotationIn,1);
+        //Rotation.write(RotationIn);
         if (millis() - prevMillis > 5000) {
           blockUpdateTime = false;
           CaseStep = stepperPlaceBottomPos;
@@ -397,7 +400,8 @@ void loop() {
       if (transit) {
         Serial.println("tiltArmVertical");
       }
-      Tilt.write(TiltVertical);
+      MoveTiltServo(TiltVertical,1);
+      //Tilt.write(TiltVertical);
       //blockUpdateTime = true;
       //if (millis() - prevMillis > 1000) {
       //  blockUpdateTime = false;
@@ -435,7 +439,8 @@ void loop() {
       if (transit) {
         Serial.println("clampOut");
       }
-      Clamp.write(ClampTryPos);
+      MoveClampServo(ClampTryPos,1);
+      //Clamp.write(ClampTryPos);
       break;
 
     //case rotArmClearLPPos:       //position to clear the LP, can't go all the way out because of clamp arm
@@ -568,11 +573,14 @@ void homingSequence() {
      when clamp is not limited, it can be in the way for rotation and tilt, so it needs to be homed first.
   */
   MoveArmHeightServo(DOWN, 1);
-  toneArmHeight.write(DOWN);    //DOWN
-  Clamp.write(ClampOpen);       //loosen the clamp
-  Rotation.write(RotationOut);  //~ middle
-  delay(250);                   //wait for it to be outwards at least a bit
-  Tilt.write(TiltVertical);     //vertical
+  //toneArmHeight.write(DOWN);    //DOWN
+  MoveClampServo(ClampOpen,1);
+  //Clamp.write(ClampOpen);       //loosen the clamp
+  MoveRotationServo(RotationOut, 1);
+  //Rotation.write(RotationOut);  //~ middle
+  //delay(250);                   //wait for it to be outwards at least a bit, NOT NEEDED WITH NEW FUNCTIONS
+  MoveTiltServo(TiltVertical,1);
+  //Tilt.write(TiltVertical);     //vertical
 
 
   //Clamp.detach();
