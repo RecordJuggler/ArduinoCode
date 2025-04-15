@@ -12,6 +12,7 @@ void MoveRotationServo(byte pos, byte stepSize) {
     for (byte interimPos = RotStoredPos; interimPos < pos; interimPos += stepSize) {
       Rotation.write(interimPos);
       RotStoredPos = interimPos;
+      delay(50);
     }
 
   } else if (RotStoredPos > pos) {
@@ -19,6 +20,7 @@ void MoveRotationServo(byte pos, byte stepSize) {
     for (byte interimPos = RotStoredPos; interimPos > pos; interimPos -= stepSize) {
       Rotation.write(interimPos);
       RotStoredPos = interimPos;
+      delay(50);
     }
   }
   //write pos last time in case stepSize does not end at pos exactly
@@ -47,6 +49,7 @@ void MoveTiltServo(byte pos, byte stepSize) {
     for (byte interimPos = TiltStoredPos; interimPos < pos; interimPos += stepSize) {
       Tilt.write(interimPos);
       TiltStoredPos = interimPos;
+      delay(50);
     }
 
   } else if (TiltStoredPos > pos) {
@@ -54,6 +57,7 @@ void MoveTiltServo(byte pos, byte stepSize) {
     for (byte interimPos = TiltStoredPos; interimPos > pos; interimPos -= stepSize) {
       Tilt.write(interimPos);
       TiltStoredPos = interimPos;
+      delay(50);
     }
   }
   //write pos last time in case stepSize does not end at pos exactly
@@ -80,6 +84,7 @@ void MoveClampServo(byte pos, byte stepSize) {
     for (byte interimPos = ClampStoredPos; interimPos < pos; interimPos += stepSize) {
       Clamp.write(interimPos);
       ClampStoredPos = interimPos;
+      delay(50);
     }
 
   } else if (ClampStoredPos > pos) {
@@ -87,6 +92,7 @@ void MoveClampServo(byte pos, byte stepSize) {
     for (byte interimPos = ClampStoredPos; interimPos > pos; interimPos -= stepSize) {
       Clamp.write(interimPos);
       ClampStoredPos = interimPos;
+      delay(50);
     }
   }
   //write pos last time in case stepSize does not end at pos exactly
@@ -113,6 +119,7 @@ void MoveArmHeightServo(byte pos, byte stepSize) {
     for (byte interimPos = ArmHeightStoredPos; interimPos < pos; interimPos += stepSize) {
       toneArmHeight.write(interimPos);
       ClampStoredPos = interimPos;
+      delay(50);
     }
 
   } else if (ArmHeightStoredPos > pos) {
@@ -120,6 +127,7 @@ void MoveArmHeightServo(byte pos, byte stepSize) {
     for (byte interimPos = ArmHeightStoredPos; interimPos > pos; interimPos -= stepSize) {
       toneArmHeight.write(interimPos);
       ArmHeightStoredPos = interimPos;
+      delay(50);
     }
   }
   //write pos last time in case stepSize does not end at pos exactly
@@ -146,6 +154,7 @@ void MoveArmPosServo(byte pos, byte stepSize) {
     for (byte interimPos = ArmPosStoredPos; interimPos < pos; interimPos += stepSize) {
       toneArmPos.write(interimPos);
       ClampStoredPos = interimPos;
+      delay(50);
     }
 
   } else if (ArmPosStoredPos > pos) {
@@ -153,6 +162,7 @@ void MoveArmPosServo(byte pos, byte stepSize) {
     for (byte interimPos = ArmPosStoredPos; interimPos > pos; interimPos -= stepSize) {
       toneArmPos.write(interimPos);
       ArmPosStoredPos = interimPos;
+      delay(50);
     }
   }
   //write pos last time in case stepSize does not end at pos exactly

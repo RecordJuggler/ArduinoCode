@@ -20,7 +20,7 @@
 
 enum toneHeight {
   DOWN = 0,
-  UP = 30
+  UP = 40
 } toneArmHeightEnum;
 
 enum tonePos {
@@ -32,8 +32,10 @@ enum tonePos {
 
 enum RotationPos {
   //determine correct angles for Rotation
-  RotationIn = 35,
-  RotationOut = 120
+  RotationIn = 50,    //rotation where center of LP is on center of stack/player
+  RotationOut = 120,  //rotation far enough out to freely tilt
+  RotationPos1 = 65,  //rotation where inside is just around LP
+  RotationPos2 = 55  //rotation where tip is just around LP
 } RotationArmPosEnum;
 
 
@@ -54,7 +56,7 @@ enum TiltPos {
 
 
 int LPPositions[] = {
-  120,  //[0] player  top pos
+  120,  //[0] player top pos
   400,  //[1] storage pos 1
   440,  //[2] storage pos 2
   480,  //[3] storage pos 3
@@ -62,27 +64,31 @@ int LPPositions[] = {
   560,  //[5] storage pos 5
   600,  //[6] storage pos 6
   640,  //[7] storage pos 7
-  130   //[8] player bottom pos
+  170,   //[8] player bottom pos
+  165,   //[9] player lift pos1
+  155,   //[10] player lift pos 2
+
 };
 
 
 /*
 pick sequence positions:
-~163, height to start reach in to pick from player
-rotate in to ~70
-stepper up to 155 to lift LP slightly on arm base side
-rotate in to 57
-stepper up to 150
-rotate in to ~50
-clamp 40, dicht
-move stepper up (to 120 should be fine)
-stepper op 120, kan tilt naar 125 om lp better vast te houden
-rotate 120
-tilt 75
+xs (stepper) ~170, height to start reach in to pick from player
+xt tilt 135
+xr rotate in to ~65
+xs stepper up to 165 to lift LP slightly on arm base side
+xr rotate in to 56
+xs stepper up to 155
+xr rotate in to ~50
+xc clamp 40, dicht
+xs move stepper up (to 120 should be fine)
+xt tilt naar 125 om lp better vast te houden
+xr rotate 120
+xt tilt 75
 
 
 
 */
 
-
+//stepper max pos before bottoming out
 int maxPos = 650;

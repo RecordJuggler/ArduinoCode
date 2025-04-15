@@ -92,9 +92,9 @@ void startPlay() {
       Serial.println("8");
       analogReadActive = true;
       subroutineDone = true;
-      if (transit) {
+      //if (transit) {
         subroutineSteps = 0;
-      }
+      //}
       break;
   }
 }
@@ -201,9 +201,7 @@ void StopPlay() {
 
       //end
       subroutineDone = true;
-      if (transit) {
-        subroutineSteps = 0;
-      }
+      subroutineSteps = 0;
       break;
   }
 }

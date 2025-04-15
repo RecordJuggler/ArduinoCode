@@ -46,7 +46,10 @@ enum steps { startup,
              homing,
              jukePiCommand,  //wait for command
              stepperPickTopPos,
+             stepperPickIntermediatePos,
+             stepperPickPos2,
              rotArmClearancePos,
+             rotArmPickPos2,
              tiltArmHorizontal,
              stepperPickBottomPos,
              rotArmPickPlacePos,  //determine next steps based on ClampIn or Out
@@ -147,6 +150,8 @@ void loop() {
 
   if (message.length() > 0) {
     message.trim();
+
+    //simple move commands
     /*
     s - Stepper
     r - rotation (arm in/out)
@@ -155,7 +160,6 @@ void loop() {
     u - up, tone arm up/down
     i - in, tonearm in/out
     */
-    //simple move commands
     if (message[0] == 'x' && message.length() > 2) {
       if (message.substring(2).toInt() != 0) {
         int number = message.substring(2).toInt();
@@ -167,34 +171,36 @@ void loop() {
 
         } else if (message[1] == 'r') {
           //move rotation
-          MoveRotationServo(number, 1);
+          MoveRotationServo(number, 2);
           //Rotation.write(number);
 
         } else if (message[1] == 't') {
           //move tilt
-          MoveTiltServo(number, 1);
+          MoveTiltServo(number, 2);
           //Tilt.write(number);
 
         } else if (message[1] == 'c') {
           //move clamp
-          MoveClampServo(number, 1);
+          MoveClampServo(number, 2);
           //Clamp.write(number);
 
         } else if (message[1] == 'u') {
           //move toneArm Up/down
-          MoveArmHeightServo(number, 1);
+          MoveArmHeightServo(number, 2);
           //toneArmHeight.write(number);
 
         } else if (message[1] == 'i') {
           //move toneArm in/out
-          MoveArmPosServo(number, 1);
+          MoveArmPosServo(number, 2);
           //toneArmPos.write(number);
         }
       }
     }
 
+    //other commands
     if (message.equalsIgnoreCase("demo")) {
-      CaseStep = stepperPlaceTopPos;  //go to top of player
+      //CaseStep = stepperPlaceTopPos;  //go to top of player
+      CaseStep = stepperPickBottomPos;
       isHoldingLP = true;
     }
 
@@ -290,9 +296,9 @@ void loop() {
     bool donePlaying = analogRead(iLDR) > 600;
     RPOn = analogRead(iLDR) > 100;
     if (donePlaying) {
-      stopped = true;
-      StopPlay();
-      CaseStep = jukePiCommand;
+      CaseStep = stopPlaying;
+      //stopped = true;
+      //StopPlay();
     }
     Serial.println(analogRead(iLDR));
   }
@@ -330,15 +336,47 @@ void loop() {
       if (transit) {
         Serial.println("stepperPickTopPos");
       }
+      stepper.moveTo(StepperPos(LPPositions[0]));
+      if (stepper.distanceToGo() == 0) {
+        CaseStep = rotArmPickPlacePos;
+      }
       //statement
       break;
+
+
+    //move stepper to intermediate position of pick pos
+    case stepperPickIntermediatePos:
+      if (transit) {
+        Serial.println("stepperPickTopPos");
+      }
+      stepper.moveTo(StepperPos(LPPositions[9]));
+      MoveRotationServo(RotationPos2, 1);
+      if (stepper.distanceToGo() == 0) {
+        CaseStep = stepperPickPos2;
+      }
+      //statement
+      break;
+
+
+    case stepperPickPos2:
+      if (transit) {
+        Serial.println("stepperPickPos2");
+      }
+      stepper.moveTo(StepperPos(LPPositions[10]));
+      MoveRotationServo(RotationIn,1);
+      if (stepper.distanceToGo() == 0) {
+        CaseStep = clampIn;
+      }
+      break;
+
+
 
     //rotate arm to clearance position, free from box and ready for vertical tilt
     case rotArmClearancePos:
       if (transit) {
         Serial.println("rotArmClearancePos");
       }
-      MoveRotationServo(RotationTryPos,1);
+      MoveRotationServo(RotationOut, 1);
       //Rotation.write(RotationTryPos);
       blockUpdateTime = true;
       if (millis() - prevMillis > 5000) {
@@ -352,7 +390,7 @@ void loop() {
       if (transit) {
         Serial.println("tiltArmHorizontal");
       }
-      MoveTiltServo(TiltVertical,1);
+      MoveTiltServo(TiltHorizontal, 1);
       //Tilt.write(TiltVertical);
       blockUpdateTime = true;
       if (millis() - prevMillis > 1000) {
@@ -366,26 +404,56 @@ void loop() {
       if (transit) {
         Serial.println("stepperPickBottomPos");
       }
+      stepper.moveTo(StepperPos(LPPositions[8]));
+      if (stepper.distanceToGo() == 0) {
+        CaseStep = tiltArmHorizontal;
+      }
+
       //statement
       break;
+
 
     //rotate arm to inwards position for pick or place. should always be the same rotation as all LP's are in line
     case rotArmPickPlacePos:
       if (transit) {
         Serial.println("rotArmPickPlacePos");
       }
+      blockUpdateTime = true;
       if (isHoldingLP) {  //is at top pos, need to release LP
-        blockUpdateTime = true;
-        MoveRotationServo(RotationIn,1);
+        MoveRotationServo(RotationOut, 1);
         //Rotation.write(RotationIn);
-        if (millis() - prevMillis > 5000) {
-          blockUpdateTime = false;
-          CaseStep = stepperPlaceBottomPos;
-        }
       } else {  //at pickup pos, need to clamp LP
+        MoveRotationServo(RotationPos1, 1);
+        //Rotation.write(RotationIn);
+      }
+      if (millis() - prevMillis > 5000) {
+        blockUpdateTime = false;
+        if (isHoldingLP) {
+          CaseStep = stepperPlaceBottomPos;
+        } else {
+          CaseStep = stepperPickIntermediatePos;
+        }
       }
       //statement
       break;
+
+
+
+    case rotArmPickPos2:
+      if (transit) {
+        Serial.println("rotArmPickPos2");
+      }
+
+      blockUpdateTime = true;
+      MoveRotationServo(RotationPos2, 1);
+      if (millis() - prevMillis > 5000) {
+        blockUpdateTime = false;
+        CaseStep = stepperPickPos2;
+      }
+      break;
+
+
+
 
     //move the little clamp inwards to grip the LP
     case clampIn:  //clamp LP
@@ -400,7 +468,7 @@ void loop() {
       if (transit) {
         Serial.println("tiltArmVertical");
       }
-      MoveTiltServo(TiltVertical,1);
+      MoveTiltServo(TiltVertical, 1);
       //Tilt.write(TiltVertical);
       //blockUpdateTime = true;
       //if (millis() - prevMillis > 1000) {
@@ -439,7 +507,7 @@ void loop() {
       if (transit) {
         Serial.println("clampOut");
       }
-      MoveClampServo(ClampTryPos,1);
+      MoveClampServo(ClampTryPos, 1);
       //Clamp.write(ClampTryPos);
       break;
 
@@ -532,6 +600,8 @@ void Startup() {
 
   toneArmHeight.attach(armHeight);
   toneArmPos.attach(armPos);
+
+  homingSequence();
 }
 
 
@@ -574,12 +644,14 @@ void homingSequence() {
   */
   MoveArmHeightServo(DOWN, 1);
   //toneArmHeight.write(DOWN);    //DOWN
-  MoveClampServo(ClampOpen,1);
+  MoveArmPosServo(BASE, 1);
+  //toneArmPos.write(BASE);     //base position
+  MoveClampServo(ClampOpen, 1);
   //Clamp.write(ClampOpen);       //loosen the clamp
   MoveRotationServo(RotationOut, 1);
   //Rotation.write(RotationOut);  //~ middle
   //delay(250);                   //wait for it to be outwards at least a bit, NOT NEEDED WITH NEW FUNCTIONS
-  MoveTiltServo(TiltVertical,1);
+  MoveTiltServo(TiltVertical, 1);
   //Tilt.write(TiltVertical);     //vertical
 
 
