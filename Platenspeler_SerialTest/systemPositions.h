@@ -33,7 +33,7 @@ enum tonePos {
 enum RotationPos {
   //determine correct angles for Rotation
   RotationIn = 50,    //rotation where center of LP is on center of stack/player
-  RotationOut = 120,  //rotation far enough out to freely tilt
+  RotationOut = 130,  //rotation far enough out to freely tilt
   RotationPos1 = 65,  //rotation where inside is just around LP
   RotationPos2 = 55  //rotation where tip is just around LP
 } RotationArmPosEnum;
@@ -51,7 +51,7 @@ enum ClampPos {
 */
 enum TiltPos {
   TiltHorizontal = 135,
-  TiltVertical = 75,
+  TiltVertical = 70,
   TiltSlightlyVertical = 125
 } TiltArmPosEnum;
 
@@ -74,19 +74,60 @@ int LPPositions[] = {
 
 /*
 pick sequence positions:
+A side:
 xs (stepper) ~170, height to start reach in to pick from player
 xt tilt 135
 xr rotate in to ~65
 xs stepper up to 165 to lift LP slightly on arm base side
-xr rotate in to 56
-xs stepper up to 155
-xr rotate in to ~50
+xr rotate in to 60
+xs stepper up to 158
+xr rotate in to 50
 xc clamp 40, dicht
 xs move stepper up (to 120 should be fine)
 xt tilt naar 125 om lp better vast te houden
-xr rotate 120
-xt tilt 75
+xr rotate 130
+xt tilt 70
 
+B side:
+xt tilt 01 (0)
+xr rotate 20 (max till 13 until you hit the side against the alu profile)
+xs (stepper) ~172, height to start reach in to pick from player
+xr rotate 35, slightly lift lp with inner arm
+xs stepper 168, lift lp and set outer arm on level of LP
+xr rotate 42, reach LP with outer arm
+xs stepper 155, lift LP a little again (but stay on center pin)
+xr rotate ~50, grab LP with outer arm
+xs stepper 40
+xc clamp close (40)
+xt tilt 10, hold better for rotation movement
+xr rotate 130 (out)
+xt tilt 70 vertical
+
+
+place sequence positions:
+A side:
+xt Tilt 135 vertical
+xr rotate 50
+xs stepper 160, slightly on pin
+xr rotate 52, back to 50 quickly to shake LP onto pin (correct for inaccuracy of servo)
+xc clamp 140 open
+xr rotate 130
+xt tilt 70
+Stepper free to move
+
+
+B side
+xs stepper 40 up to allow tilt to move above player
+xt tilt 07 tilt horizontal
+xr rotate 50
+xs stepper 160
+xr rotate 52, back to 50 quickly to shake LP onto pin (correct for inaccuracy of servo)
+xc clamp 140 open
+xr rotate 20, release LP onto pin
+xs stepper 40
+xr rotate 130
+xt tilt 70
+Stepper free to move
 
 
 */
