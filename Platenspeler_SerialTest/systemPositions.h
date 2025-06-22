@@ -32,10 +32,13 @@ enum tonePos {
 
 enum RotationPos {
   //determine correct angles for Rotation
-  RotationIn = 50,    //rotation where center of LP is on center of stack/player
-  RotationOut = 130,  //rotation far enough out to freely tilt
-  RotationPos1 = 65,  //rotation where inside is just around LP
-  RotationPos2 = 55  //rotation where tip is just around LP
+  RotationIn = 50,     //rotation where center of LP is on center of stack/player
+  RotationOutFront = 130,  //rotation far enough out to freely tilt or move stepper on A side/front
+  RotationOutB = 20,   //rotation far enough out to freely tilt or move stepper on B side
+  RotationPos1A = 65,  //rotation where inside is just around LP A side
+  RotationPos2A = 58,  //rotation where tip is just around LP A side
+  RotationPos1B = 35,  //rotation where inside is just around LP B side
+  RotationPos2B = 40   //rotation where tip is just around LP B side
 } RotationArmPosEnum;
 
 
@@ -50,9 +53,11 @@ enum ClampPos {
 75: probably save to move stepper up/down
 */
 enum TiltPos {
-  TiltHorizontal = 135,
+  TiltHorizontalA = 133,
+  TiltHorizontalB = 4,
   TiltVertical = 70,
-  TiltSlightlyVertical = 125
+  TiltSlightlyVerticalA = 125,
+  TiltSlightlyVerticalB = 10
 } TiltArmPosEnum;
 
 
@@ -65,10 +70,12 @@ int LPPositions[] = {
   560,  //[5] storage pos 5
   600,  //[6] storage pos 6
   640,  //[7] storage pos 7
-  170,   //[8] player bottom pos
-  165,   //[9] player lift pos1
-  155,   //[10] player lift pos 2
-
+  200,  //[8] storage pos 8 (potential)
+  200,  //[9] storage pos 9 (potential)
+  175,  //[10] player bottom pos
+  165,  //[11] player lift pos1
+  160,  //[12] player lift pos 2
+  40,   //[13] top pos, free to tilt above player
 };
 
 
@@ -106,7 +113,7 @@ xt tilt 70 vertical
 
 place sequence positions:
 A side:
-xt Tilt 135 vertical
+xt Tilt 135 horizontal (A-side)
 xr rotate 50
 xs stepper 160, slightly on pin
 xr rotate 52, back to 50 quickly to shake LP onto pin (correct for inaccuracy of servo)
@@ -118,7 +125,7 @@ Stepper free to move
 
 B side
 xs stepper 40 up to allow tilt to move above player
-xt tilt 07 tilt horizontal
+xt tilt 07 tilt horizontal (B-side)
 xr rotate 50
 xs stepper 160
 xr rotate 52, back to 50 quickly to shake LP onto pin (correct for inaccuracy of servo)

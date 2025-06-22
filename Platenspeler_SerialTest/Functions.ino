@@ -174,3 +174,10 @@ void MoveArmPosServo(byte pos, byte stepSize) {
   Serial.print("Position stored: ");
   Serial.println(ArmPosStoredPos);
 }
+
+
+void ShakeRotation() {
+  MoveRotationServo(RotationIn - 5, 2);
+  MoveRotationServo(RotationIn + 5, 2);
+}
+

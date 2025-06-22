@@ -31,6 +31,7 @@ const int TiltEEPROMAddress = 1;
 const int ClampEEPROMAddress = 2;
 const int ArmHeightEEPROMAddress = 3;
 const int ArmPosEEPROMAddress = 4;
+const int StepperEEPROMAddress = 5;
 
 int rpmPin = RPM33;
 
@@ -46,33 +47,68 @@ enum steps { startup,
              homing,
              jukePiCommand,  //wait for command
 
-             //steps 1xx: Pick sequence from player
-             Step100_stepperPickBottomPos,
-             Step110_tiltArmHorizontal,
-             Step120_rotArmPickPos1,
-             Step130_stepperPickIntermediatePos,
-             Step135_rotArmPickPos2,
-             Step140_stepperPickPos2,
-             Step150_rotArmPickIn,
-             Step160_CloseClamp,
-             Step170_stepperPickTopPos,
-             Step180_tiltPickSlightlyVertical,
-             Step190_rotArmPickOutwards,
-             Step195_tiltPickVertical,
+             //steps 1xx: Pick A-side sequence from player
+             Step100_PickA_StepperPickBottomPos,
+             Step110_PickA_TiltArmHorizontal,
+             Step120_PickA_RotArmPickPos1,
+             Step130_PickA_StepperPickIntermediatePos,
+             Step135_PickA_RotArmPickPos2,
+             Step140_PickA_StepperPickPos2,
+             Step150_PickA_RotArmPickIn,
+             Step160_PickA_CloseClamp,
+             Step170_PickA_StepperPickTopPos,
+             Step180_PickA_TiltPickSlightlyVertical,
+             Step190_PickA_RotArmPickOutwards,
+             Step195_PickA_TiltPickVertical,
 
-             //steps 2xx: Place sequence on player or rack
-             Step200_stepperPlaceTopPos,
-             Step250_stepperPlaceBottomPos,
 
-             //steps 3xx: Pick sequence from rack
-             Step300_stepperPick,
+             //steps 2xx: Pick B-side sequence from player
+             Step200_PickB_StepperPickTopPos,  //stepper to top to allow tilt horizontal
+             Step210_PickB_TiltArmHorizontal,  //tilt arm horizontal for B-side
+             Step220_PickB_RotArmPickOut,      //rotate arm in to 20 (maybe not necessary?)
+             Step230_PickB_StepperBottomPos,
+             Step240_PickB_RotArmPickPos1,            //rotate arm in to 35, slightly lift LP with inner arm
+             Step250_PickB_StepperIntermediatePos,    //lift arm so outer arm is level with LP
+             Step260_PickB_RotArmPickPos2,            //reach LP with outer arm
+             Step270_PickB_StepperPickPos2,           //move stepper up but stay on center pin
+             Step280_PickB_RotArmPickIn,              //Rotate arm to 50 to fully pick LP
+             Step290_PickB_CloseClamp,                //does it even need a comment?..
+             Step291_PickB_StepperPickTopPos,         //stepper up to 40 to allow tilt again
+             Step292_PickB_TiltPickSlightlyVertical,  //tilt slightly to allow better rotation movement without potentially losing LP
+             Step293_PickB_RotArmPickOutwards,        //Rotate arm out to 130
+             Step295_PickB_TiltPickVertical,
 
-             rotArmClearancePos,
-             tiltArmHorizontal,
-             clampIn,  //clamp LP
-             tiltArmVertical,
 
-             clampOut,  //release LP
+             //steps 3xx: Place A-side sequence on player
+             Step300_PlaceA_stepperPlaceTopPos,     //stepper to height where we can place LP (120-ish should be fine?)
+             Step310_PlaceA_TiltPlaceHorizontal,    //tilt horizontal A-side to place A side on top
+             Step320_PlaceA_RotArmPlaceIn,          //rotate arm in to place position (should be the same for all picks and places)
+             Step330_PlaceA_StepperPlaceCenterPin,  //stepper to height where LP is just within center pin
+             Step340_PlaceA_RotArmShakeOnPin,       //Special move to shake rotation around 50-52-ish to account for inaccuracy and make sure LP is on Pin
+             Step350_PlaceA_StepperPlaceBottomPos,  //move stepper down a bit (maybe not necessary?)
+             Step360_PlaceA_ClampOpen,
+             Step370_PlaceA_RotArmPlaceOutwards,  //move arm outwards to 130
+             Step380_PlaceA_TiltPlaceVertical,    //tilt vertically again when free to do so
+
+
+             //steps 4xx: Place B-side sequence on player
+             Step400_PlaceB_StepperPlaceTopPos,     //move stepper to 40 to allow tilt for B-side
+             step410_PlaceB_TiltPlaceHorizontal,    //tilt horizontal for B-side (around 7deg)
+             Step420_PlaceB_RotArmPlaceIn,          //rotate arm in to place position (should be the same for all picks and places)
+             Step430_PlaceB_StepperPlaceBottomPos,  //stepper to height where LP is just within center pin
+             Step440_PlaceB_RotArmShakeOnPin,       //Special move to shake rotation around 50-52-ish to account for inaccuracy and make sure LP is on Pin
+             Step450_PlaceB_ClampOpen,
+             Step460_PlaceB_RotArmPlaceRelease,   //rotate arm out to 20 to release LP onto pin
+             Step470_PlaceB_StepperPlaceTopPos,   //move stepper up to allow tilt back
+             Step480_PlaceB_RotArmPlaceOutwards,  //rotate out to 130
+             Step490_PlaceB_TiltPlaceVertical,    //tilt vertically again when free to do so
+
+
+
+
+             //steps 5xx: Pick sequence from rack
+             Step500_PickRack_StepperPickRackPos,
+
              //rotArmClearLPPos,       //position to clear the LP, can't go all the way out because of clamp arm
              stopCommand,  //from either JukePi or player end sensor
              startPlaying,
@@ -80,7 +116,7 @@ enum steps { startup,
 };
 
 steps CaseStep = startup, prevStep = startup;
-bool transit = false;
+bool transit, next, finish, StepperBelowPlayer = false;
 
 int subroutineSteps = 0;
 unsigned long subroutineMillis = 0;
@@ -101,9 +137,6 @@ String message = "";
 bool blockUpdateTime = false;
 bool isHoldingLP = false;
 
-int ClampTryPos = 90;
-int RotationTryPos = 90;
-int TiltTryPos = 90;
 
 //eeprom, stored data
 byte RotStoredPos, TiltStoredPos, ClampStoredPos, ArmHeightStoredPos, ArmPosStoredPos = 0;
@@ -119,7 +152,7 @@ void setup() {
     Serial.println(RotStoredPos);
     if (RotStoredPos == 255) {
       //first time boot, no position stored yet
-      RotStoredPos = RotationOut;  //store reference pos
+      RotStoredPos = RotationOutFront;  //store reference pos
     }
     TiltStoredPos = EEPROM.read(TiltEEPROMAddress);
     Serial.println(TiltStoredPos);
@@ -217,10 +250,21 @@ void loop() {
 
 //other commands
 #pragma region more complicated test commands
-    if (message.equalsIgnoreCase("demo")) {
-      //CaseStep = stepperPlaceTopPos;  //go to top of player
-      CaseStep = Step100_stepperPickBottomPos;
-      isHoldingLP = true;
+    if (message.equalsIgnoreCase("demoPickA")) {
+      CaseStep = Step100_PickA_StepperPickBottomPos;
+    } else if (message.equalsIgnoreCase("demoPickB")) {
+      CaseStep = Step200_PickB_StepperPickTopPos;
+    } else if (message.equalsIgnoreCase("demoPlaceA")) {
+      CaseStep = Step300_PlaceA_stepperPlaceTopPos;
+    } else if (message.equalsIgnoreCase("demoPlaceB")) {
+      CaseStep = Step400_PlaceB_StepperPlaceTopPos;
+    }
+
+    if (message.equalsIgnoreCase("next")) {
+      next = true;
+    } else if (message.equalsIgnoreCase("finish")) {
+      next = true;
+      finish = true;
     }
 
     if (message.equalsIgnoreCase("33")) {
@@ -266,36 +310,9 @@ void loop() {
       commandActivated = millis();
 
     } else {
-      //other commands
-      if (CaseStep == clampOut) {
-        if (message.equalsIgnoreCase("continue")) {
-          CaseStep = rotArmClearancePos;
-        }
-        //write number to servo
-        ClampTryPos = message.toInt();
-        Serial.println(ClampTryPos);
-
-      } else if (CaseStep == rotArmClearancePos
-                 || CaseStep == Step120_rotArmPickPos1) {
-        if (message.equalsIgnoreCase("continue")) {
-          CaseStep = jukePiCommand;
-        }
-        //write number to servo
-        RotationTryPos = message.toInt();
-        Serial.println(RotationTryPos);
-
-      } else if (CaseStep == tiltArmVertical) {
-        if (message.equalsIgnoreCase("continue")) {
-          CaseStep = jukePiCommand;
-        }
-        //write number to servo
-        TiltTryPos = message.toInt();
-        Serial.println(TiltTryPos);
-
-      } else {
-        Serial.println("invalid message");
-      }
+      Serial.println("invalid message");
     }
+
 #pragma endregion
 
 
@@ -358,244 +375,595 @@ void loop() {
       if (transit) {
         Serial.println("jukePiCommand");
       }
+      finish = false;
       //read serial and determine next step there
       break;
 
 
 //Pick steps from player
-#pragma region pick from player
+#pragma region pickA from player
 
 
     //move stepper to bottom position of pick pos. this is the actual height of the LP
-    case Step100_stepperPickBottomPos:
+    case Step100_PickA_StepperPickBottomPos:
       if (transit) {
         Serial.println("stepperPickBottomPos");
       }
-      stepper.moveTo(StepperPos(LPPositions[8]));
+      stepper.moveTo(StepperPos(LPPositions[10]));
       if (stepper.distanceToGo() == 0) {
-        CaseStep = Step110_tiltArmHorizontal;
+        if (next) {
+          CaseStep = Step110_PickA_TiltArmHorizontal;
+        }
       }
       break;
 
 
     //tilt gripper arm horizontal, ready to pick up or place down
-    case Step110_tiltArmHorizontal:
+    case Step110_PickA_TiltArmHorizontal:
       if (transit) {
         Serial.println("tiltArmHorizontal");
       }
-      MoveTiltServo(TiltHorizontal, 1);
-      CaseStep = Step120_rotArmPickPos1;
+      MoveTiltServo(TiltHorizontalA, 2);
+      if (next) {
+        CaseStep = Step120_PickA_RotArmPickPos1;
+      }
       break;
 
 
 
     //rotate arm to inwards position for pick. only inner side will allign vertically because of flex in arm
-    case Step120_rotArmPickPos1:
+    case Step120_PickA_RotArmPickPos1:
       if (transit) {
         Serial.println("rotArmPickPlacePos");
       }
-      MoveRotationServo(RotationPos1, 1);
-      CaseStep = Step130_stepperPickIntermediatePos;
+      MoveRotationServo(RotationPos1A, 2);
+      if (next) {
+        CaseStep = Step130_PickA_StepperPickIntermediatePos;
+      }
       break;
 
 
 
     //move stepper to intermediate position of pick pos, alligns outer side of arm with LP
-    case Step130_stepperPickIntermediatePos:
+    case Step130_PickA_StepperPickIntermediatePos:
       if (transit) {
         Serial.println("stepperPickIntermediatePos");
       }
-      stepper.moveTo(StepperPos(LPPositions[9]));
+      stepper.moveTo(StepperPos(LPPositions[11]));
       if (stepper.distanceToGo() == 0) {
-        CaseStep = Step135_rotArmPickPos2;
+        if (next) {
+          CaseStep = Step135_PickA_RotArmPickPos2;
+        }
       }
       break;
 
 
 
     //Rotate arm further in to also allow outer side of arm to grip LP
-    case Step135_rotArmPickPos2:
+    case Step135_PickA_RotArmPickPos2:
       if (transit) {
         Serial.println("rotArmPickPos2");
       }
-      MoveRotationServo(RotationPos2, 1);
-      CaseStep = Step140_stepperPickPos2;
+      MoveRotationServo(RotationPos2A, 1);
+      if (next) {
+        CaseStep = Step140_PickA_StepperPickPos2;
+      }
       break;
 
 
 
     //Lift LP slightly, but still on center Pin
-    case Step140_stepperPickPos2:
+    case Step140_PickA_StepperPickPos2:
       if (transit) {
         Serial.println("stepperPickPos2");
       }
-      stepper.moveTo(StepperPos(LPPositions[10]));
+      stepper.moveTo(StepperPos(LPPositions[12]));
       if (stepper.distanceToGo() == 0) {
-        CaseStep = Step150_rotArmPickIn;
+        if (next) {
+          CaseStep = Step150_PickA_RotArmPickIn;
+        }
       }
       break;
 
 
 
     //completely move rotation IN
-    case Step150_rotArmPickIn:
+    case Step150_PickA_RotArmPickIn:
       if (transit) {
         Serial.println("rotArmPickPos2");
       }
       MoveRotationServo(RotationIn, 1);
-      CaseStep = Step160_CloseClamp;
+      if (next) {
+        CaseStep = Step160_PickA_CloseClamp;
+      }
       break;
 
 
 
     //Close the clamp to hold LP in place
-    case Step160_CloseClamp:
+    case Step160_PickA_CloseClamp:
       if (transit) {
         Serial.println("clampIn");
       }
       MoveClampServo(ClampClose, 1);
-      CaseStep = Step170_stepperPickTopPos;
+      isHoldingLP = true;
+      if (next) {
+        CaseStep = Step170_PickA_StepperPickTopPos;
+      }
       break;
 
 
 
     //move stepper to top position of pick pos
-    case Step170_stepperPickTopPos:
+    case Step170_PickA_StepperPickTopPos:
       if (transit) {
         Serial.println("stepperPickTopPos");
       }
       stepper.moveTo(StepperPos(LPPositions[0]));
       if (stepper.distanceToGo() == 0) {
-        CaseStep = Step180_tiltPickSlightlyVertical;
+        if (next) {
+          CaseStep = Step180_PickA_TiltPickSlightlyVertical;
+        }
       }
       break;
 
 
 
     //move tilt slightly vertical to hold LP better before rotating outwards
-    case Step180_tiltPickSlightlyVertical:
+    case Step180_PickA_TiltPickSlightlyVertical:
       if (transit) {
         Serial.println("stepperPickTopPos");
       }
-      MoveTiltServo(TiltSlightlyVertical, 1);
-      CaseStep = Step190_rotArmPickOutwards;
+      MoveTiltServo(TiltSlightlyVerticalA, 1);
+      if (next) {
+        CaseStep = Step190_PickA_RotArmPickOutwards;
+      }
       break;
 
 
 
     //move rotation OUT
-    case Step190_rotArmPickOutwards:
+    case Step190_PickA_RotArmPickOutwards:
       if (transit) {
         Serial.println("rotArmPickOutwards");
       }
-      MoveRotationServo(RotationOut, 1);
-      CaseStep = Step195_tiltPickVertical;
+      MoveRotationServo(RotationOutFront, 1);
+      if (next) {
+        CaseStep = Step195_PickA_TiltPickVertical;
+      }
       break;
 
 
 
     //put tilt vertical to allow stepper to move
-    case Step195_tiltPickVertical:
+    case Step195_PickA_TiltPickVertical:
       if (transit) {
         Serial.println("tiltPickVertical");
       }
       MoveTiltServo(TiltVertical, 1);
       CaseStep = jukePiCommand;
+
       break;
 
 
+#pragma endregion end of PickA sequence from player
 
 
-#pragma endregion end of Pick sequence from player
+#pragma region PickB from player
 
-
-    //rotate arm to clearance position, free from box and ready for vertical tilt
-    case rotArmClearancePos:
+    //stepper up to where we can tilt horizontally to B side, needs more space because bend moves down
+    case Step200_PickB_StepperPickTopPos:
       if (transit) {
-        Serial.println("rotArmClearancePos");
+        Serial.println("stepperPickTopPos");
       }
-      MoveRotationServo(RotationOut, 1);
-      //Rotation.write(RotationTryPos);
-      blockUpdateTime = true;
-      if (millis() - prevMillis > 5000) {
-        blockUpdateTime = false;
-        CaseStep = tiltArmVertical;
+      stepper.moveTo(StepperPos(LPPositions[13]));
+      if (stepper.distanceToGo() == 0) {
+        if (next) {
+          CaseStep = Step210_PickB_TiltArmHorizontal;
+        }
       }
       break;
 
-    //tilt gripper arm horizontal, ready to pick up or place down
-    case tiltArmHorizontal:
+    //tilt arm to B side
+    case Step210_PickB_TiltArmHorizontal:
       if (transit) {
-        Serial.println("tiltArmHorizontal");
+        Serial.println("tiltPickhorizontal");
       }
-      MoveTiltServo(TiltHorizontal, 1);
-      //Tilt.write(TiltVertical);
-      blockUpdateTime = true;
-      if (millis() - prevMillis > 1000) {
-        blockUpdateTime = false;
-        CaseStep = jukePiCommand;
+      MoveTiltServo(TiltHorizontalB, 2);
+      if (next) {
+        CaseStep = Step220_PickB_RotArmPickOut;
       }
       break;
 
 
+    //rotate arm to outside pos for B side
+    case Step220_PickB_RotArmPickOut:
+      if (transit) {
+        Serial.println("rotArmPickPos1");
+      }
+      MoveRotationServo(RotationOutB, 2);
+      if (next) {
+        CaseStep = Step230_PickB_StepperBottomPos;
+      }
+      break;
 
-    //move the little clamp inwards to grip the LP
-    case clampIn:  //clamp LP
+
+    //move stepper down so inner arm is level with LP
+    case Step230_PickB_StepperBottomPos:
+      if (transit) {
+        Serial.println("stepperPickBottomPos");
+      }
+      stepper.moveTo(StepperPos(LPPositions[10]));
+      Serial.println(stepper.distanceToGo());
+      if (stepper.distanceToGo() == 0) {
+        if (next) {
+          CaseStep = Step240_PickB_RotArmPickPos1;
+        }
+      }
+      break;
+
+
+    //rotate arm inwards so LP gets lifted slightly by inner arm
+    case Step240_PickB_RotArmPickPos1:
+      if (transit) {
+        Serial.println("rotArmPickPos1");
+      }
+      MoveRotationServo(RotationPos1B, 1);
+      if (next) {
+        CaseStep = Step250_PickB_StepperIntermediatePos;
+      }
+      break;
+
+
+    //rotate a bit inwards to lift LP a bit and level outside of arm with LP
+    case Step250_PickB_StepperIntermediatePos:
+      if (transit) {
+        Serial.println("stepperPickIntermediatePos");
+      }
+      stepper.moveTo(StepperPos(LPPositions[11]));
+      if (stepper.distanceToGo() == 0) {
+        if (next) {
+          CaseStep = Step260_PickB_RotArmPickPos2;
+        }
+      }
+      break;
+
+
+    //rotate arm inwards to outer arm reaches LP
+    case Step260_PickB_RotArmPickPos2:
+      if (transit) {
+        Serial.println("rotArmPickPos2");
+      }
+      MoveRotationServo(RotationPos2B, 1);
+      if (next) {
+        CaseStep = Step270_PickB_StepperPickPos2;
+      }
+      break;
+
+
+    //move stepper up to lift LP, but stay on center pin
+    case Step270_PickB_StepperPickPos2:
+      if (transit) {
+        Serial.println("stepperPickPos2");
+      }
+      stepper.moveTo(StepperPos(LPPositions[12]));
+      if (stepper.distanceToGo() == 0) {
+        if (next) {
+          CaseStep = Step280_PickB_RotArmPickIn;
+        }
+      }
+      break;
+
+
+    //completely move rotation IN
+    case Step280_PickB_RotArmPickIn:
+      if (transit) {
+        Serial.println("rotArmPickPos2");
+      }
+      MoveRotationServo(RotationIn, 1);
+      if (next) {
+        CaseStep = Step290_PickB_CloseClamp;
+      }
+      break;
+
+
+    //close clamp to hold LP
+    case Step290_PickB_CloseClamp:
       if (transit) {
         Serial.println("clampIn");
       }
-      //statement
+      MoveClampServo(ClampClose, 2);
+      isHoldingLP = true;
+      if (next) {
+        CaseStep = Step291_PickB_StepperPickTopPos;
+      }
       break;
 
-    //tilt arm vertical to move stepper up or down
-    case tiltArmVertical:
+
+    //move stepper up completely
+    case Step291_PickB_StepperPickTopPos:
       if (transit) {
-        Serial.println("tiltArmVertical");
+        Serial.println("stepperPickTopPos");
       }
-      MoveTiltServo(TiltVertical, 1);
-      //Tilt.write(TiltVertical);
-      //blockUpdateTime = true;
-      //if (millis() - prevMillis > 1000) {
-      //  blockUpdateTime = false;
-      //  CaseStep = jukePiCommand;
-      //}
-      //statement
+      stepper.moveTo(StepperPos(LPPositions[13]));
+      if (stepper.distanceToGo() == 0) {
+        if (next) {
+          CaseStep = Step292_PickB_TiltPickSlightlyVertical;
+        }
+      }
       break;
+
+
+    //slightly tilt before rotating to make sure we're holding the LP better
+    case Step292_PickB_TiltPickSlightlyVertical:
+      if (transit) {
+        Serial.println("stepperPickTopPos");
+      }
+      MoveTiltServo(TiltSlightlyVerticalB, 1);
+      if (next) {
+        CaseStep = Step293_PickB_RotArmPickOutwards;
+      }
+      break;
+
+
+    //rotate fully forward
+    case Step293_PickB_RotArmPickOutwards:
+      if (transit) {
+        Serial.println("rotArmPickOutwards");
+      }
+      MoveRotationServo(RotationOutFront, 1);
+      if (next) {
+        CaseStep = Step295_PickB_TiltPickVertical;
+      }
+      break;
+
+
+    case Step295_PickB_TiltPickVertical:
+      if (transit) {
+        Serial.println("tiltPickVertical");
+      }
+      MoveTiltServo(TiltVertical, 2);
+      CaseStep = jukePiCommand;
+      break;
+
+
+#pragma endregion end of PickB sequence from player
+
+
+#pragma region Place sequence A side
+
 
     //move stepper to the top of the place position
-    case Step200_stepperPlaceTopPos:
+    case Step300_PlaceA_stepperPlaceTopPos:
       if (transit) {
         Serial.println("stepperPlaceTopPos");
       }
       stepper.moveTo(StepperPos(LPPositions[0]));
       if (stepper.distanceToGo() == 0) {
-        CaseStep = Step120_rotArmPickPos1;
+        if (next) {
+          CaseStep = Step310_PlaceA_TiltPlaceHorizontal;
+        }
       }
-      //statement
       break;
+
+
+    case Step310_PlaceA_TiltPlaceHorizontal:
+      if (transit) {
+        Serial.println("tiltPlaceAHorizontal");
+      }
+      MoveTiltServo(TiltHorizontalA, 1);
+      if (next) {
+        CaseStep = Step320_PlaceA_RotArmPlaceIn;
+      }
+      break;
+
+
+    case Step320_PlaceA_RotArmPlaceIn:
+      if (transit) {
+        Serial.println("rotArmPlaceIn");
+      }
+      MoveRotationServo(RotationIn, 1);
+      if (next) {
+        CaseStep = Step330_PlaceA_StepperPlaceCenterPin;
+      }
+      break;
+
+
+    case Step330_PlaceA_StepperPlaceCenterPin:
+      if (transit) {
+        Serial.println("StepperPlaceCenterPin");
+      }
+      stepper.moveTo(StepperPos(LPPositions[11]));
+      if (stepper.distanceToGo() == 0) {
+        if (next) {
+          CaseStep = Step340_PlaceA_RotArmShakeOnPin;
+        }
+      }
+      break;
+
+
+    case Step340_PlaceA_RotArmShakeOnPin:
+      if (transit) {
+        Serial.println("RotShakeOnPin");
+      }
+      ShakeRotation();
+      if (next) {
+        //CaseStep = Step350_PlaceA_StepperPlaceBottomPos;
+        CaseStep = Step360_PlaceA_ClampOpen;
+      }
+      break;
+
 
     //move stepper to the bottom of the place position. LP should now rest on player or storage
-    case Step250_stepperPlaceBottomPos:
+    case Step350_PlaceA_StepperPlaceBottomPos:
       if (transit) {
-        Serial.println("stepperPlaceBottomPos");
+        Serial.println("StepperPlaceBottomPos");
       }
-      stepper.moveTo(StepperPos(LPPositions[8]));
+      stepper.moveTo(StepperPos(LPPositions[10]));
       if (stepper.distanceToGo() == 0) {
-        CaseStep = clampOut;
+        if (next) {
+          CaseStep = Step360_PlaceA_ClampOpen;
+        }
       }
       //statement
       break;
 
-    //release LP clamp
-    case clampOut:  //release LP
+
+    case Step360_PlaceA_ClampOpen:
       if (transit) {
-        Serial.println("clampOut");
+        Serial.println("ClampOpen");
       }
-      MoveClampServo(ClampTryPos, 1);
-      //Clamp.write(ClampTryPos);
+      MoveClampServo(ClampOpen, 2);
+      isHoldingLP = false;
+      if (next) {
+        CaseStep = Step370_PlaceA_RotArmPlaceOutwards;
+      }
       break;
 
-    //case rotArmClearLPPos:       //position to clear the LP, can't go all the way out because of clamp arm
+
+    case Step370_PlaceA_RotArmPlaceOutwards:
+      if (transit) {
+        Serial.println("RotArmPlaceOutwards");
+      }
+      MoveRotationServo(RotationOutFront, 1);
+      if (next) {
+        CaseStep = Step380_PlaceA_TiltPlaceVertical;
+      }
+      break;
+
+
+    case Step380_PlaceA_TiltPlaceVertical:
+      if (transit) {
+        Serial.println("TiltPlaceVertical");
+      }
+      MoveTiltServo(TiltVertical, 2);
+      CaseStep = jukePiCommand;
+      break;
+
+
+#pragma endregion end region place A side on player
+
+
+#pragma region Place sequence B side
+
+    case Step400_PlaceB_StepperPlaceTopPos:
+      if (transit) {
+        Serial.println("stepperPlaceTopPos");
+      }
+      stepper.moveTo(StepperPos(LPPositions[13]));
+      if (stepper.distanceToGo() == 0) {
+        if (next) {
+          CaseStep = step410_PlaceB_TiltPlaceHorizontal;
+        }
+      }
+      break;
+
+
+    case step410_PlaceB_TiltPlaceHorizontal:
+      if (transit) {
+        Serial.println("TiltPlaceHorizontalB");
+      }
+      MoveTiltServo(TiltHorizontalB, 1);
+      if (next) {
+        CaseStep = Step420_PlaceB_RotArmPlaceIn;
+      }
+      break;
+
+
+    case Step420_PlaceB_RotArmPlaceIn:
+      if (transit) {
+        Serial.println("RotArmPlaceBIn");
+      }
+      MoveRotationServo(RotationIn, 1);
+      if (next) {
+        CaseStep = Step430_PlaceB_StepperPlaceBottomPos;
+      }
+      break;
+
+
+    case Step430_PlaceB_StepperPlaceBottomPos:
+      if (transit) {
+        Serial.println("StepperPlaceBottomPos");
+      }
+      stepper.moveTo(StepperPos(LPPositions[11]));
+      if (stepper.distanceToGo() == 0) {
+        if (next) {
+          CaseStep = Step440_PlaceB_RotArmShakeOnPin;
+        }
+      }
+      break;
+
+
+    case Step440_PlaceB_RotArmShakeOnPin:
+      if (transit) {
+        Serial.println("RotArmShakeOnPin");
+      }
+      ShakeRotation();
+      if (next) {
+        CaseStep = Step450_PlaceB_ClampOpen;
+      }
+      break;
+
+
+    case Step450_PlaceB_ClampOpen:
+      if (transit) {
+        Serial.println("ClampOpen");
+      }
+      MoveClampServo(ClampOpen, 2);
+      isHoldingLP = false;
+      if (next) {
+        CaseStep = Step460_PlaceB_RotArmPlaceRelease;
+      }
+      break;
+
+
+    case Step460_PlaceB_RotArmPlaceRelease:
+      if (transit) {
+        Serial.println("RotArmPlaceRelease");
+      }
+      MoveRotationServo(RotationOutB, 1);
+      if (next) {
+        CaseStep = Step470_PlaceB_StepperPlaceTopPos;
+      }
+      break;
+
+
+    case Step470_PlaceB_StepperPlaceTopPos:
+      if (transit) {
+        Serial.println("StepperPlaceBTopPos");
+      }
+      stepper.moveTo(StepperPos(LPPositions[13]));
+      if (stepper.distanceToGo() == 0) {
+        if (next) {
+          CaseStep = Step480_PlaceB_RotArmPlaceOutwards;
+        }
+      }
+      break;
+
+
+    case Step480_PlaceB_RotArmPlaceOutwards:
+      if (transit) {
+        Serial.println("RotArmPlaceBFront");
+      }
+      MoveRotationServo(RotationOutFront, 2);
+      if (next) {
+        CaseStep = Step490_PlaceB_TiltPlaceVertical;
+      }
+      break;
+
+
+    case Step490_PlaceB_TiltPlaceVertical:
+      if (transit) {
+        Serial.println("TiltPlaceBVerticalFront");
+      }
+      MoveTiltServo(TiltVertical, 2);
+      CaseStep = jukePiCommand;
+      break;
+
+
+
+#pragma endregion end region place B side on player
+
 
     //interupt steps
     //start rotating at set RPM and move arm on top of LP
@@ -637,11 +1005,24 @@ void loop() {
   //set transit bit
   if (CaseStep != prevStep) {
     transit = true;
+    if (!finish) {
+      next = false;
+    }
     prevStep = CaseStep;
   } else {
     transit = false;
   }
 
+
+
+  //store stepper position in EEPROM when switches from above player to below player
+  if (stepper.currentPosition() < 325 && !StepperBelowPlayer) {
+    EEPROM.update(StepperEEPROMAddress, 1);
+    StepperBelowPlayer = true;
+  } else if (stepper.currentPosition() >= 325 && StepperBelowPlayer) {
+    EEPROM.update(StepperEEPROMAddress, 0);
+    StepperBelowPlayer = false;
+  }
 
 
   //leave this part last in loop
@@ -726,13 +1107,22 @@ void homingSequence() {
 
      when clamp is not limited, it can be in the way for rotation and tilt, so it needs to be homed first.
   */
+  bool stepperHomed = false;
+  if (RotStoredPos < 125 && EEPROM.read(StepperEEPROMAddress) == 0) {
+    //if rotation is inwards and arm is not below player, home stepper first before we can move tilt
+    HomeStepper();
+    stepper.setSpeed(-250);  //lower speed
+    HomeStepper();
+    stepperHomed = true;
+  }
+
   MoveArmHeightServo(DOWN, 1);
   //toneArmHeight.write(DOWN);    //DOWN
   MoveArmPosServo(BASE, 1);
   //toneArmPos.write(BASE);     //base position
   MoveClampServo(ClampOpen, 1);
   //Clamp.write(ClampOpen);       //loosen the clamp
-  MoveRotationServo(RotationOut, 1);
+  MoveRotationServo(RotationOutFront, 1);
   //Rotation.write(RotationOut);  //~ middle
   //delay(250);                   //wait for it to be outwards at least a bit, NOT NEEDED WITH NEW FUNCTIONS
   MoveTiltServo(TiltVertical, 1);
@@ -742,10 +1132,11 @@ void homingSequence() {
   //Clamp.detach();
   //Rotation.detach();
   //Tilt.detach();
+  if (!stepperHomed) {
+    //home stepper
+    HomeStepper();
 
-  //home stepper
-  HomeStepper();
-
-  stepper.setSpeed(-250);  //lower speed
-  HomeStepper();
+    stepper.setSpeed(-250);  //lower speed
+    HomeStepper();
+  }
 }
