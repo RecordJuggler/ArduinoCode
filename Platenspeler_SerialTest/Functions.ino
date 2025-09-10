@@ -176,8 +176,7 @@ void MoveArmPosServo(byte pos, byte stepSize) {
 }
 
 
-void ShakeRotation() {
-  MoveRotationServo(RotationIn - 5, 2);
-  MoveRotationServo(RotationIn + 5, 2);
+void ShakeRotation(int pos) {
+  MoveRotationServo(pos - 5, 2);
+  MoveRotationServo(pos + 5, 2);
 }
-
