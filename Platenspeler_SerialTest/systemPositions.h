@@ -50,7 +50,19 @@ enum ClampPos {
 5: horizontal, opening outwards
 135: horizontal, opening inwards (towards record player), 130 puts LP slightly higher
 70: vertical, opening up
-75: probably save to move stepper up/down
+75: probably safe to move stepper up/down
+
+calculate vertical arm pos:
+ArmLength                   //distance from center of rotation to outer edge
+* Sin( ( (180.0/130.0)      //scaling factor between servo angle and real angle
+       * (float)(Angle-3)   //to float and perform offset of servo (around 3-4 deg)
+       / 360.0)             //degrees to factor
+       * (2.0 * PI) )       //factor from degrees to Rad for Sine function
+
+horizontal arm pos:
+depends both on rotation and tilt, fully rotation when tilt is vertical.
+When Rotation = 0 (straight forward) and tilt horizontal, arm is sticking 'ArmLength' outwards, otherwise 'length' * cos(RotAngleInRad) + 'ArmLength'
+with tilt arm shape becomes ellipse and calculation is a lot harder, TODO figure out (if wanted)
 */
 enum TiltPos {
   TiltHorizontalA = 133,
