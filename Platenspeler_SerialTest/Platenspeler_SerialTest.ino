@@ -118,18 +118,19 @@ enum steps { startup,
 
 
              //steps 6xx: Place sequence on rack
-             Step600_PlaceRack_StepperPlaceTopPos,  //stepper to top place position
-             Step610_PlaceRack_TiltHorizontally,    //tilt horizontally A side (B side not possible for storage)
-             Step620_PlaceRack_RotateIn,            //rotate in completely so hole of lp lines up with pin
-             Step630_PlaceRack_StepperBottomPos,    //stepper down to place bottom pos
+             Step600_PlaceRack_StepperPlaceTopPos,    //stepper to top place position
+             Step601_PlaceRack_MoveStepperToSafePos,  //intermediate step to move down before doing tilt to prevent collision
+             Step602_PlaceRack_TiltHorizontally,      //tilt horizontally at correct height
+             Step603_PlaceRack_StepperPlaceTopPos,    //move back to up to correct height
+             Step610_PlaceRack_TiltHorizontally,      //tilt horizontally A side (B side not possible for storage)
+             Step620_PlaceRack_RotateIn,              //rotate in completely so hole of lp lines up with pin
+             Step630_PlaceRack_StepperBottomPos,      //stepper down to place bottom pos
              Step635_PlaceRack_RotArmShakeOnPin,
-             Step640_PlaceRack_OpenClamp,              //release LP from clamp
-             Step650_PlaceRack_RotateOut,              //rotate out to front
-             Step660_PlaceRack_StepperToClearancePos,  //optionally, move stepper down before moving tilt vertical
-             Step665_PlaceRack_TiltVertically,         //tilt vertical, ONLY POSSIBLE WHEN HEIGHT > 420!
+             Step640_PlaceRack_OpenClamp,             //release LP from clamp
+             Step650_PlaceRack_RotateOut,             //rotate out to front
+             Step660_PlaceRack_StepperToClearancePos, //optionally, move stepper down before moving tilt vertical
+             Step665_PlaceRack_TiltVertically,        //tilt vertical, ONLY POSSIBLE WHEN HEIGHT > 420!
 
-
-             //rotArmClearLPPos,       //position to clear the LP, can't go all the way out because of clamp arm
              stopCommand,  //from either JukePi or player end sensor
              startPlaying,
              stopPlaying
@@ -328,14 +329,14 @@ void loop() {
       commandActivated = millis();
 
     } else if (message.equalsIgnoreCase("up")) {
-      //toggle relay on or off
+      //move toneArm up
       MoveArmHeightServo(UP, 1);
       //toneArmHeight.write(UP);
       Serial.println("tonearm UP");
       commandActivated = millis();
 
     } else if (message.equalsIgnoreCase("down")) {
-      //toggle relay on or off
+      //move toneArm down
       MoveArmHeightServo(DOWN, 1);
       //toneArmHeight.write(DOWN);
       Serial.println("tonearm DOWN");
@@ -423,9 +424,9 @@ void loop() {
       }
       stepper.moveTo(StepperPos(LPPositions[1]));
       if (stepper.distanceToGo() == 0) {
-        if (next) {
+        //if (next) {
           CaseStep = Step110_PickA_TiltArmHorizontal;
-        }
+        //}
       }
       break;
 
@@ -436,13 +437,13 @@ void loop() {
         Serial.println("tiltArmHorizontal");
       }
       MoveTiltServo(TiltHorizontalA, 2);
-      if (next) {
-        CaseStep = Step120_PickA_RotArmPickPos1;
-      }
+      //if (next) {
+        CaseStep = Step135_PickA_RotArmPickPos2;  //Step120_PickA_RotArmPickPos1;
+      //}
       break;
 
 
-
+/*
     //rotate arm to inwards position for pick. only inner side will allign vertically because of flex in arm
     case Step120_PickA_RotArmPickPos1:
       if (transit) {
@@ -470,16 +471,16 @@ void loop() {
       break;
 
 
-
+*/
     //Rotate arm further in to also allow outer side of arm to grip LP
     case Step135_PickA_RotArmPickPos2:
       if (transit) {
         Serial.println("rotArmPickPos2");
       }
       MoveRotationServo(RotationPos2A, 1);
-      if (next) {
+      //if (next) {
         CaseStep = Step140_PickA_StepperPickPos2;
-      }
+      //}
       break;
 
 
@@ -491,9 +492,9 @@ void loop() {
       }
       stepper.moveTo(StepperPos(LPPositions[3]));
       if (stepper.distanceToGo() == 0) {
-        if (next) {
+        //if (next) {
           CaseStep = Step150_PickA_RotArmPickIn;
-        }
+        //}
       }
       break;
 
@@ -505,9 +506,9 @@ void loop() {
         Serial.println("rotArmPickPos2");
       }
       MoveRotationServo(RotationIn, 1);
-      if (next) {
+      //if (next) {
         CaseStep = Step160_PickA_CloseClamp;
-      }
+      //}
       break;
 
 
@@ -519,9 +520,9 @@ void loop() {
       }
       MoveClampServo(ClampClose, 1);
       isHoldingLP = true;
-      if (next) {
+      //if (next) {
         CaseStep = Step170_PickA_StepperPickTopPos;
-      }
+      //}
       break;
 
 
@@ -533,9 +534,9 @@ void loop() {
       }
       stepper.moveTo(StepperPos(LPPositions[0]));
       if (stepper.distanceToGo() == 0) {
-        if (next) {
+        //if (next) {
           CaseStep = Step180_PickA_TiltPickSlightlyVertical;
-        }
+        //}
       }
       break;
 
@@ -547,9 +548,9 @@ void loop() {
         Serial.println("stepperPickTopPos");
       }
       MoveTiltServo(TiltSlightlyVerticalA, 1);
-      if (next) {
+      //if (next) {
         CaseStep = Step190_PickA_RotArmPickOutwards;
-      }
+      //}
       break;
 
 
@@ -560,9 +561,9 @@ void loop() {
         Serial.println("rotArmPickOutwards");
       }
       MoveRotationServo(RotationOutFront, 1);
-      if (next) {
+      //if (next) {
         CaseStep = Step195_PickA_TiltPickVertical;
-      }
+      //}
       break;
 
 
@@ -629,12 +630,12 @@ void loop() {
       Serial.println(stepper.distanceToGo());
       if (stepper.distanceToGo() == 0) {
         if (next) {
-          CaseStep = Step240_PickB_RotArmPickPos1;
+          CaseStep = Step260_PickB_RotArmPickPos2;  //Step240_PickB_RotArmPickPos1;
         }
       }
       break;
 
-
+/*
     //rotate arm inwards so LP gets lifted slightly by inner arm
     case Step240_PickB_RotArmPickPos1:
       if (transit) {
@@ -659,7 +660,7 @@ void loop() {
         }
       }
       break;
-
+*/
 
     //rotate arm inwards to outer arm reaches LP
     case Step260_PickB_RotArmPickPos2:
@@ -1133,9 +1134,34 @@ void loop() {
           if (stepper.distanceToGo() == 0) {
             CaseStep = Step610_PlaceRack_TiltHorizontally;
           }
-        }else{
-          //move to 420 or lower?
+        } else {
+          CaseStep = Step601_PlaceRack_MoveStepperToSafePos;
         }
+      }
+      break;
+
+
+    case Step601_PlaceRack_MoveStepperToSafePos:
+      stepper.moveTo(StepperPos(425));
+      if (stepper.distanceToGo() == 0) {
+        CaseStep = Step602_PlaceRack_TiltHorizontally;
+      }
+      break;
+
+
+    case Step602_PlaceRack_TiltHorizontally:
+      if (transit) {
+        Serial.println("tiltHorizontal");
+      }
+      MoveTiltServo(TiltHorizontalA, 2);
+      CaseStep = Step603_PlaceRack_StepperPlaceTopPos;
+      break;
+
+
+    case Step603_PlaceRack_StepperPlaceTopPos:
+      stepper.moveTo(StepperPos(StoragePositions[RackPosition] - StoragePositions[0]));
+      if (stepper.distanceToGo() == 0) {
+        CaseStep = Step620_PlaceRack_RotateIn;
       }
       break;
 
@@ -1200,8 +1226,8 @@ void loop() {
         Serial.println("StepperClearancePos");
         Serial.println(stepper.currentPosition());
       }
-      if (Steppermm(stepper.currentPosition()) <= 420) {
-        stepper.moveTo(StepperPos(425));  //move 5mm below clearance pos to freely tilt
+      if (Steppermm(stepper.currentPosition()) <= 390) {  //open clamp will collide above this
+        stepper.moveTo(StepperPos(385));  //move 5mm below clearance pos to freely tilt
         if (stepper.distanceToGo() == 0) {
           CaseStep = Step665_PlaceRack_TiltVertically;
         }

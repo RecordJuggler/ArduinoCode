@@ -43,7 +43,7 @@ enum RotationPos {
 
 
 enum ClampPos {
-  ClampClose = 40,
+  ClampClose = 35,
   ClampOpen = 140
 } ClampPosEnum;
 /*tilt:
@@ -77,7 +77,7 @@ int LPPositions[] = {
   120,  //[0] player top pos, free to rotate and tilt slightly
   175,  //[1] player bottom pos
   165,  //[2] player lift pos1
-  160,  //[3] player lift pos 2
+  161,  //[3] player lift pos 2
   40,   //[4] top pos, free to tilt above player
 };
 
@@ -88,7 +88,7 @@ int StoragePositions[] = {
   430,  //[3] storage pos 3
   460,  //[4] storage pos 4
   487,  //[5] storage pos 5
-  517,  //[6] storage pos 6
+  521,  //[6] storage pos 6
   545,  //[7] storage pos 7
   578,  //[8] storage pos 8
   603,  //[9] storage pos 9
