@@ -2,12 +2,15 @@
 
 
 **Serial commands:**
+
 Serial communication is setup with a BaudRate of 115200.
 At startup, the RecordJuggler will first perform a homing sequence to home the stepper towards the top and set all servo axes to safe positions.
 After this, the Step Cycle will go to CaseStep will go to the step called 'JukePiCommand', after which it will be able to listen to new main commands. 
 All commands sent through the serial communication are Case-INsensitive, meaning capital letters act as normal letters. e.g. 'DemoPickA', 'demopicka' and 'DeMoPiCkA' all give the same result.
 
 From the step 'JukePiCommand', a few demo cycles can be called
+
+
 
 **Current Demo-Cycles:**
 - demoPickA
@@ -28,7 +31,10 @@ During prototyping, a few of these demos are still in testing and may require ma
 This can be done using the 'next' command. To automatically finish the sequence without having to send 'next' each time, the 'finish' command can be sent.
 The demo sequence will then run automatically until the demo is finished and will end in the 'JukePiCommand' caseStep, awaiting a new (demo)command.
 
+
+
 **Manual control of individual axes:**
+
 To manually control each axis, some manual-control commands have been added.
 These can be incredibly usefull to send the RecordJuggler to a certain position to store that position for an automatic sequence.
 All Manual-control commands are identified by starting them with the letter 'x'.
@@ -51,14 +57,15 @@ xs250  : Moves the stepper to position 250
 xr130  : Moves rotation to 130, this is the 'outwards' position 
 
 
+
 **Other simple commands:**
+
 33 : Starts the recordPlayer turning at 33RPM
 45 : Starts the recordPlayer turning at 45RPM
 stop : Stops any recordPlayer turning
 togglepower : toggles the power of the recordPlayer, the player has a relay inside that can bypass the physical power button. This power is different from the RecordJuggler power.
 up : Move the toneArm up
 down: moves the toneArm down
-
 
 
 
