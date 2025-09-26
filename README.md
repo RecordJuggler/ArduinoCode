@@ -47,13 +47,16 @@ The next character defines the axis that needs to be moved:
 - I : ToneArmPosition
 
 After these two letters, it is required to set a position you want the axis to go to.
-This can be 1-270 for most servos, but 1-606 for the stepper.
+This can be 1-270 for most servos, but 1-605 for the stepper.
+
 A value of 0 is not possible, as the command is sent as a string and needs to be converted to an Int.
 When the conversion is invalid, the toInt() function returns 0, which would then also result in the axis moving to position 0.
 To prevent unwanted move to 0, this value is filtered out and regarded as an error in the ToInt() parsing.
 
 A complete manual-control command would look like this:
+
 xs250  : Moves the stepper to position 250
+
 xr130  : Moves rotation to 130, this is the 'outwards' position 
 
 
