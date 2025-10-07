@@ -19,14 +19,15 @@
 
 
 enum toneHeight {
-  DOWN = 0,
-  UP = 40
+  DOWN = 175,
+  UP = 80
 } toneArmHeightEnum;
 
 enum tonePos {
-  BASE = 170,
-  START = 105,
-  END = 0
+  BASE = 170,         //wiper in base position
+  BACKTOBASE = 145,   //position where ToneArm is right at base pos
+  START = 135,        //start of LP
+  END = 0             //furthest place, where plate would be 
 } toneArmPosEnum;
 
 
