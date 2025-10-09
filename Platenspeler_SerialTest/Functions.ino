@@ -29,8 +29,11 @@ void MoveRotationServo(byte pos, byte stepSize) {
   RotStoredPos = pos;
   //write position back to EEPROM after move
   EEPROM.update(RotationEEPROMAddress, RotStoredPos);
-  Serial.print("Position stored: ");
-  Serial.println(RotStoredPos);
+  //Serial.print("Position stored: ");
+  //Serial.println(RotStoredPos);
+  calculateArmYpos(RotStoredPos, TiltStoredPos);
+
+  Serial.println(TiltAngle(RotStoredPos, -15));
 }
 
 
@@ -66,8 +69,9 @@ void MoveTiltServo(byte pos, byte stepSize) {
   TiltStoredPos = pos;
   //write position back to EEPROM after move
   EEPROM.update(TiltEEPROMAddress, TiltStoredPos);
-  Serial.print("Position stored: ");
-  Serial.println(TiltStoredPos);
+  //Serial.print("Position stored: ");
+  //Serial.println(TiltStoredPos);
+  calculateArmYpos(RotStoredPos, TiltStoredPos);
 }
 
 
@@ -179,4 +183,72 @@ void MoveArmPosServo(byte pos, byte stepSize) {
 void ShakeRotation(int pos) {
   MoveRotationServo(pos - 5, 2);
   MoveRotationServo(pos + 5, 2);
+}
+
+
+void calculateArmYpos(byte Rot, byte Tilt) {
+  //constants:
+  byte L = 240;  //length of arm from rotation point to center of plate
+  byte r = 165;  //radius of arm in mm
+
+
+  //angles
+  float Phi = Rot - 26;
+
+  float scaledTilt = (180.0 / (134.0 - 4.0)) * (float(Tilt) - 4.0);
+  float Theta = scaledTilt - 90;
+  //Serial.println(Theta);
+
+  //y-offset of furthest armpoint from middlepoint, backwards
+  float l = float(r) * sin((PI / 180.0) * Phi) * sin((PI / 180.0) * Theta);
+  //Serial.println(l);
+
+  //y component of middle of arm compared to fixed alu profile
+  float Ny = float(L) * cos((PI / 180.0) * Phi);
+  //Serial.println(Ny);
+
+  //total offset of furthest point of arm
+  float yPos = Ny - l;
+  Serial.println(yPos);
+}
+
+
+/*
+reverse tilt calculation:
+l / (float(r) * sin((PI / 180.0) * double(Phi))) = sin((PI / 180.0) * double(Theta));
+Theta = asin( l / (float(r) * sin((PI / 180.0) * double(Phi)) )
+
+l = Ny - ypos, yPos is given
+Ny = float(L) * cos((PI / 180.0) * double(Phi));
+
+*/
+byte TiltAngle(byte RotPos, float MaxYPos) {
+  //constants
+  byte L = 240;  //length of arm from rotation point to center of plate
+  byte r = 165;  //radius of arm in mm
+
+  float Phi = RotPos - 26;
+  float Ny = float(L) * cos((PI / 180.0) * double(Phi));
+  float l = Ny - MaxYPos;
+
+  if (l > 0 && l < r) {
+    //tilt is only needed when l > 0, as otherwise tilt would move the arm towards to player (inwards)
+    //tilt is only possible when l < r, as otherwise the distance needed to get to yPos is greater than what tilt can provide
+    float Theta = asin(l / (float(r) * sin((PI / 180.0) * double(Phi))));
+    float ThetaDeg = (180 / PI) * Theta;
+    float scaledTilt = ThetaDeg + 90;
+    float tilt = ((134.0 - 4.0) / 180) * scaledTilt + 4;
+    /*
+    Serial.print("Theta: ");
+    Serial.println(ThetaDeg);
+
+    Serial.print("Tilt: ");
+    Serial.println(tilt);
+
+    Serial.print("yPos: ");
+    calculateArmYpos(RotPos, tilt);
+*/
+    return byte(tilt);  //floor van float, gaat goed doordat naar beneden afronden ervoor zorgt dat we altijd binnen yMax vallen
+  }
+  return 0;
 }

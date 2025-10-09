@@ -73,6 +73,16 @@ enum TiltPos {
   TiltSlightlyVerticalB = 10
 } TiltArmPosEnum;
 
+/*
+tilt perfectly vertical at ~65/66
+Rotation straight at 116
+tilt horizontal at 134
+scale 130 to 180: 1,3846153846
+or map(angle, 4, 134, 0, 180)
+
+
+*/
+
 
 int LPPositions[] = {
   120,  //[0] player top pos, free to rotate and tilt slightly
