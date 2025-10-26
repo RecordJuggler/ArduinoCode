@@ -1286,12 +1286,11 @@ void loop() {
         digitalWrite(rpmPin, HIGH);
       }
       startPlay();
-      Serial.println("STARTED");
       if (subroutineDone) {
+        Serial.println("STARTED");
         subroutineDone = false;
         CaseStep = jukePiCommand;
       }
-      //statement
       break;
 
 
@@ -1304,8 +1303,8 @@ void loop() {
       }
       StopPlay();
       paused = false;  //in case it gets stopped after pause
-      Serial.println("FINISHED");
       if (subroutineDone) {
+        Serial.println("FINISHED");
         subroutineDone = false;
         CaseStep = jukePiCommand;
       }
