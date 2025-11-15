@@ -1,77 +1,97 @@
 //Servo EEPROM move functions
+//byte rotInterimPos = 0;
+bool RotInPos = false;
 
 //function to safely move Rotation servo in set stepsize (speed)
-void MoveRotationServo(byte pos, byte stepSize) {
+bool MoveRotationServo(byte pos, byte stepSize) {
+  //rotInterimPos = RotStoredPos;  //init interimPos
+  RotInPos = false;
 
   if (!ServoPositionKnown) {
     RotStoredPos = EEPROM.read(RotationEEPROMAddress);
   }
 
-  if (RotStoredPos < pos) {
+  if (RotStoredPos <= pos - stepSize) {  //if stepsize still fits
     //move forward
-    for (byte interimPos = RotStoredPos; interimPos < pos; interimPos += stepSize) {
-      Rotation.write(interimPos);
-      RotStoredPos = interimPos;
-      delay(50);
-    }
+    RotStoredPos += stepSize;
+    //for (byte interimPos = RotStoredPos; interimPos < pos; interimPos += stepSize) {
+    Rotation.write(RotStoredPos);
+    //RotStoredPos = interimPos;
+    delay(50);
+    //}
 
-  } else if (RotStoredPos > pos) {
+  } else if (RotStoredPos >= pos + stepSize) {  //curent position > GoToPosition
     //move backward
-    for (byte interimPos = RotStoredPos; interimPos > pos; interimPos -= stepSize) {
-      Rotation.write(interimPos);
-      RotStoredPos = interimPos;
-      delay(50);
-    }
-  }
-  //write pos last time in case stepSize does not end at pos exactly
-  Rotation.write(pos);
+    RotStoredPos -= stepSize;
+    //for (byte interimPos = RotStoredPos; interimPos > pos; interimPos -= stepSize) {
+    Rotation.write(RotStoredPos);
+    //RotStoredPos = rotInterimPos;
+    delay(50);
 
-  RotStoredPos = pos;
-  //write position back to EEPROM after move
-  EEPROM.update(RotationEEPROMAddress, RotStoredPos);
-  //Serial.print("Position stored: ");
-  //Serial.println(RotStoredPos);
+  } else if ((RotStoredPos > pos - stepSize && RotStoredPos < pos + stepSize) || RotStoredPos == pos) {  //is in closest position it can reach with set stepSize
+    //write pos last time in case stepSize does not end at pos exactly
+    Rotation.write(pos);
+    RotInPos = true;
+  }
+
+  if (RotInPos) {
+    RotStoredPos = pos;
+    //write position back to EEPROM after move
+    EEPROM.update(RotationEEPROMAddress, RotStoredPos);
+  }
+
   calculateArmYpos(RotStoredPos, TiltStoredPos);
 
-  Serial.println(TiltAngle(RotStoredPos, -15));
+  //Serial.println(TiltAngle(RotStoredPos, -15));
+
+  return RotInPos;
 }
 
 
 
-
+bool TiltInPos = false;
 //function to safely move Tilt servo in set stepsize (speed)
-void MoveTiltServo(byte pos, byte stepSize) {
-  //Serial.println(pos);
+bool MoveTiltServo(byte pos, byte stepSize) {
+  TiltInPos = false;
 
   if (!ServoPositionKnown) {
     TiltStoredPos = EEPROM.read(TiltEEPROMAddress);
   }
 
-  if (TiltStoredPos < pos) {
+  if (TiltStoredPos <= pos - stepSize) {  //if step still fits
     //move forward
-    for (byte interimPos = TiltStoredPos; interimPos < pos; interimPos += stepSize) {
-      Tilt.write(interimPos);
-      TiltStoredPos = interimPos;
-      delay(50);
-    }
+    TiltStoredPos += stepSize;
+    //for (byte interimPos = TiltStoredPos; interimPos < pos; interimPos += stepSize) {
+    Tilt.write(TiltStoredPos);
+    //TiltStoredPos = interimPos;
+    delay(50);
+    //}
 
-  } else if (TiltStoredPos > pos) {
+  } else if (TiltStoredPos >= pos + stepSize) {
     //move backward
-    for (byte interimPos = TiltStoredPos; interimPos > pos; interimPos -= stepSize) {
-      Tilt.write(interimPos);
-      TiltStoredPos = interimPos;
-      delay(50);
-    }
+    TiltStoredPos -= stepSize;
+    //for (byte interimPos = TiltStoredPos; interimPos > pos; interimPos -= stepSize) {
+    Tilt.write(TiltStoredPos);
+    //TiltStoredPos = interimPos;
+    delay(50);
+    //}
+  } else if ((TiltStoredPos > pos - stepSize && TiltStoredPos < pos + stepSize) || TiltStoredPos == pos) {  //is in closest position it can reach with set stepSize
+    //write pos last time in case stepSize does not end at pos exactly
+    Tilt.write(pos);
+    TiltInPos = true;
   }
-  //write pos last time in case stepSize does not end at pos exactly
-  Tilt.write(pos);
 
-  TiltStoredPos = pos;
-  //write position back to EEPROM after move
-  EEPROM.update(TiltEEPROMAddress, TiltStoredPos);
+  if (TiltInPos) {
+    TiltStoredPos = pos;
+    //write position back to EEPROM after move
+    EEPROM.update(RotationEEPROMAddress, RotStoredPos);
+  }
+
   //Serial.print("Position stored: ");
   //Serial.println(TiltStoredPos);
   calculateArmYpos(RotStoredPos, TiltStoredPos);
+
+  return TiltInPos;
 }
 
 
@@ -105,8 +125,8 @@ void MoveClampServo(byte pos, byte stepSize) {
   ClampStoredPos = pos;
   //write position back to EEPROM after move
   EEPROM.update(ClampEEPROMAddress, ClampStoredPos);
-  Serial.print("Position stored: ");
-  Serial.println(ClampStoredPos);
+  //Serial.print("Position stored: ");
+  //Serial.println(ClampStoredPos);
 }
 
 
@@ -140,8 +160,8 @@ void MoveArmHeightServo(byte pos, byte stepSize) {
   ArmHeightStoredPos = pos;
   //write position back to EEPROM after move
   EEPROM.update(ArmHeightEEPROMAddress, ArmHeightStoredPos);
-  Serial.print("Position stored: ");
-  Serial.println(ArmHeightStoredPos);
+  //Serial.print("Position stored: ");
+  //Serial.println(ArmHeightStoredPos);
 }
 
 
@@ -175,14 +195,14 @@ void MoveArmPosServo(byte pos, byte stepSize) {
   ArmPosStoredPos = pos;
   //write position back to EEPROM after move
   EEPROM.update(ArmPosEEPROMAddress, ArmPosStoredPos);
-  Serial.print("Position stored: ");
-  Serial.println(ArmPosStoredPos);
+  //Serial.print("Position stored: ");
+  //Serial.println(ArmPosStoredPos);
 }
 
 
 void ShakeRotation(int pos) {
-  MoveRotationServo(pos - 5, 2);
-  MoveRotationServo(pos + 5, 2);
+  while(!MoveRotationServo(pos - 5, 2)){}
+  while(MoveRotationServo(pos + 5, 2)){}
 }
 
 
@@ -209,7 +229,7 @@ void calculateArmYpos(byte Rot, byte Tilt) {
 
   //total offset of furthest point of arm
   float yPos = Ny - l;
-  Serial.println(yPos);
+  //Serial.println(yPos);
 }
 
 

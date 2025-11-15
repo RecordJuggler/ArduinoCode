@@ -4,7 +4,7 @@ void startPlay() {
 
   switch (subroutineSteps) {
     case 0:
-      Serial.println("0");
+      //Serial.println("0");
       //move arm down, to allow positioning to go to base without interference
       //toneArmHeightEnum = DOWN;
       MoveArmHeightServo(DOWN, 1);
@@ -14,7 +14,7 @@ void startPlay() {
       break;
 
     case 1:
-      Serial.println("1");
+      //Serial.println("1");
 
       if (millis() - subroutineMillis >= 1000) {
         subroutineSteps = 2;
@@ -22,7 +22,7 @@ void startPlay() {
       break;
 
     case 2:
-      Serial.println("2");
+      //Serial.println("2");
 
       //move pos to base
       //toneArmPosEnum = BASE;
@@ -34,7 +34,7 @@ void startPlay() {
       break;
 
     case 3:
-      Serial.println("3");
+      //Serial.println("3");
 
       if (millis() - subroutineMillis >= 100) {
         subroutineSteps = 4;
@@ -42,7 +42,7 @@ void startPlay() {
       break;
 
     case 4:
-      Serial.println("4");
+      //Serial.println("4");
 
       //arm back up
       //toneArmHeightEnum = UP;
@@ -53,7 +53,7 @@ void startPlay() {
       break;
 
     case 5:
-      Serial.println("5");
+      //Serial.println("5");
 
       if (millis() - subroutineMillis >= 2000) {
         subroutineSteps = 6;
@@ -62,7 +62,7 @@ void startPlay() {
       break;
 
     case 6:
-      Serial.println("6");
+      //Serial.println("6");
 
       //slowly move arm to START pos
       //for (int i = BASE; i >= START; i--) {
@@ -79,7 +79,7 @@ void startPlay() {
       //}
 
     case 7:
-      Serial.println("7");
+      //Serial.println("7");
 
       //arm back down
       //toneArmHeightEnum = DOWN;
@@ -89,7 +89,7 @@ void startPlay() {
       break;
 
     case 8:
-      Serial.println("8");
+      //Serial.println("8");
       analogReadActive = true;
       subroutineDone = true;
       //if (transit) {
@@ -102,7 +102,7 @@ void startPlay() {
 void StopPlay() {
   switch (subroutineSteps) {
     case 0:
-      Serial.println("Stop 0");
+      //Serial.println("Stop 0");
       analogReadActive = false;
       //move arm down, to allow positioning to go to base without interference
       MoveArmPosServo(END, 1);
@@ -113,7 +113,7 @@ void StopPlay() {
       break;
 
     case 1:
-      Serial.println("1");
+      //Serial.println("1");
 
       if (millis() - subroutineMillis >= 100) {
         subroutineSteps = 2;
@@ -121,7 +121,7 @@ void StopPlay() {
       break;
 
     case 2:
-      Serial.println("2");
+      //Serial.println("2");
 
       MoveArmHeightServo(UP, 1);
       //toneArmHeight.write(UP);
@@ -130,7 +130,7 @@ void StopPlay() {
       break;
 
     case 3:
-      Serial.println("3");
+      //Serial.println("3");
 
       if (millis() - subroutineMillis >= 2000) {
         subroutineSteps = 4;
@@ -138,7 +138,7 @@ void StopPlay() {
       break;
 
     case 4:
-      Serial.println("4");
+      //Serial.println("4");
 
       //from end to start pos
       if (millis() - subroutineMillis >= 50 && toneArmPosition < START) {
@@ -152,7 +152,7 @@ void StopPlay() {
       break;
 
     case 5:
-      Serial.println("5");
+      //Serial.println("5");
 
       //to holder pos
       if (millis() - subroutineMillis >= 150 && toneArmPosition < 130) {
@@ -166,7 +166,7 @@ void StopPlay() {
       break;
 
     case 6:
-      Serial.println("6");
+      //Serial.println("6");
 
       toneArmHeightEnum = DOWN;
       MoveArmHeightServo(DOWN, 1);
@@ -176,7 +176,7 @@ void StopPlay() {
       break;
 
     case 7:
-      Serial.println("7");
+      //Serial.println("7");
 
       if (millis() - subroutineMillis >= 1000) {
         subroutineSteps = 8;
@@ -184,7 +184,7 @@ void StopPlay() {
       break;
 
     case 8:
-      Serial.println("8");
+      //Serial.println("8");
 
       if (millis() - subroutineMillis >= 100 && toneArmPosition < BASE) {
         toneArmPosition++;
@@ -197,7 +197,7 @@ void StopPlay() {
       break;
 
     case 9:
-      Serial.println("9");
+      //Serial.println("9");
 
       //end
       subroutineDone = true;

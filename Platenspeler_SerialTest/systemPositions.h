@@ -40,8 +40,7 @@ enum RotationPos {
   RotationPos2A = 58,      //rotation where tip is just around LP A side
   RotationPos1B = 35,      //rotation where inside is just around LP B side
   RotationPos2B = 40       //rotation where tip is just around LP B side
-} RotationArmPosEnum;
-
+} RotationEnum;
 
 enum ClampPos {
   ClampClose = 35,
@@ -94,7 +93,7 @@ int LPPositions[] = {
 
 int StoragePositions[] = {
   18,    //[0], offset used to move up between Rotation Pos 1 and Pos 2
-  378,  //[1] storage pos 1
+  380,  //[1] storage pos 1
   402,  //[2] storage pos 2
   430,  //[3] storage pos 3
   460,  //[4] storage pos 4
