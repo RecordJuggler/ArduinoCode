@@ -162,7 +162,8 @@ bool isHoldingLP = false;
 
 
 //eeprom, stored data
-byte RotStoredPos, TiltStoredPos, ClampStoredPos, ArmHeightStoredPos, ArmPosStoredPos = 0;
+byte RotStoredPos, TiltStoredPos, ClampStoredPos, ArmHeightStoredPos = 0;
+int ArmPosStoredPos = 0;
 byte RackPosition = 0;  //which position in the rack we want to pick/place
 byte RackPositonOnPlayer = 0;
 byte futureRackPosition = 0;
@@ -197,7 +198,7 @@ void setup() {
     if (ArmHeightStoredPos == 255) {
       ArmHeightStoredPos = DOWN;  //DOWN
     }
-    ArmPosStoredPos = EEPROM.read(ArmPosEEPROMAddress);
+    EEPROM.get(ArmPosEEPROMAddress, ArmPosStoredPos);
     Serial.println(ArmPosStoredPos);
     if (ArmPosStoredPos == 255) {
       ArmPosStoredPos = BASE;
@@ -1497,7 +1498,7 @@ void Startup() {
   Tilt.write(TiltStoredPos);
   Clamp.write(ClampStoredPos);
   toneArmHeight.write(ArmHeightStoredPos);
-  toneArmPos.write(ArmPosStoredPos);
+  toneArmPos.writeMicroseconds(ArmPosStoredPos);
 
   //attach servo's
   Rotation.attach(rotPin);

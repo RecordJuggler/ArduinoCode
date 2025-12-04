@@ -25,11 +25,12 @@ enum toneHeight {
 
 
 //use writeMicroseconds?
+//write() maps 0-180 deg to 544-2400 microseconds
 enum tonePos {
-  BASE = 170,         //wiper in base position
-  BACKTOBASE = 145,   //position where ToneArm is right at base pos
-  START = 135,        //start of LP
-  END = 0             //furthest place, where plate would be 
+  BASE = 2297,//170,         //wiper in base position
+  BACKTOBASE = 2040,//145,   //position where ToneArm is right at base pos
+  START = 1936,//135,        //start of LP
+  END = 544//0             //furthest place, where plate would be 
 } toneArmPosEnum;
 
 

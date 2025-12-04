@@ -194,14 +194,14 @@ bool MoveArmPosServo(int pos, byte stepSize) {
   if (ArmPosStoredPos <= pos - stepSize) {
     //move forward
     ArmPosStoredPos += stepSize;
-    toneArmPos.write(ArmPosStoredPos);
-    delay(50);
+    toneArmPos.writeMicroseconds(ArmPosStoredPos);
+    delay(5);
 
   } else if (ArmPosStoredPos >= pos + stepSize) {
     //move backward
     ArmPosStoredPos -= stepSize;
-    toneArmPos.write(ArmPosStoredPos);
-    delay(50);
+    toneArmPos.writeMicroseconds(ArmPosStoredPos);
+    delay(5);
 
   } else if ((ArmPosStoredPos > pos - stepSize && ArmPosStoredPos < pos + stepSize) || ArmPosStoredPos == pos) {
     //write pos last time in case stepSize does not end at pos exactly
@@ -213,7 +213,7 @@ bool MoveArmPosServo(int pos, byte stepSize) {
   if (ArmPosInPos) {
     ArmPosStoredPos = pos;
     //write position back to EEPROM after move
-    EEPROM.update(ArmPosEEPROMAddress, ArmPosStoredPos);
+    EEPROM.put(ArmPosEEPROMAddress, ArmPosStoredPos);
   }
 
   return ArmPosInPos;
