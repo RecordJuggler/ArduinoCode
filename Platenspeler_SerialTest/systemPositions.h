@@ -23,6 +23,8 @@ enum toneHeight {
   UP = 80
 } toneArmHeightEnum;
 
+
+//use writeMicroseconds?
 enum tonePos {
   BASE = 170,         //wiper in base position
   BACKTOBASE = 145,   //position where ToneArm is right at base pos

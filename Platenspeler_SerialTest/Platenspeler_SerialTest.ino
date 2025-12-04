@@ -260,10 +260,10 @@ void loop() {
 
 //JukePi commands
 #pragma region JukePiCommands
-//if message contains *, then message split to rackposition+SideToPlay and rpm speed
-//raspi path:
-//cd Documents/MusicPlayer/go-server/src
-// go run main.go
+    //if message contains *, then message split to rackposition+SideToPlay and rpm speed
+    //raspi path:
+    //cd Documents/MusicPlayer/go-server/src
+    // go run main.go
 
     if (message.equalsIgnoreCase("PLAY")) {
       CaseStep = startPlaying;
@@ -343,7 +343,7 @@ void loop() {
 
           } else if (message[1] == 'r') {
             //move rotation
-            while (!MoveRotationServo(number, 2)) {}
+            while (!MoveRotationServo(number, 1, true)) {}
             //Rotation.write(number);
 
           } else if (message[1] == 't') {
@@ -353,17 +353,17 @@ void loop() {
 
           } else if (message[1] == 'c') {
             //move clamp
-            MoveClampServo(number, 2);
+            while (!MoveClampServo(number, 2)) {}
             //Clamp.write(number);
 
           } else if (message[1] == 'u') {
             //move toneArm Up/down
-            MoveArmHeightServo(number, 2);
+            while (!MoveArmHeightServo(number, 2)) {}
             //toneArmHeight.write(number);
 
           } else if (message[1] == 'i') {
             //move toneArm in/out
-            MoveArmPosServo(number, 2);
+            while(!MoveArmPosServo(number, 2)){}
             //toneArmPos.write(number);
           }
         }
@@ -431,14 +431,14 @@ void loop() {
 
       } else if (message.equalsIgnoreCase("up")) {
         //move toneArm up
-        MoveArmHeightServo(UP, 1);
+        while (!MoveArmHeightServo(UP, 1)) {}
         //toneArmHeight.write(UP);
         Serial.println("tonearm UP");
         commandActivated = millis();
 
       } else if (message.equalsIgnoreCase("down")) {
         //move toneArm down
-        MoveArmHeightServo(DOWN, 1);
+        while (!MoveArmHeightServo(DOWN, 1)) {}
         //toneArmHeight.write(DOWN);
         Serial.println("tonearm DOWN");
         commandActivated = millis();
@@ -603,7 +603,7 @@ void loop() {
       if (transit) {
         Serial.println("rotArmPickPos2");
       }
-      if (MoveRotationServo(RotationPos2A, 1)) {
+      if (MoveRotationServo(RotationPos2A, 1, false)) {
         CaseStep = Step140_PickA_StepperPickPos2;
       }
       break;
@@ -630,7 +630,7 @@ void loop() {
       if (transit) {
         Serial.println("rotArmPickPos2");
       }
-      if (MoveRotationServo(RotationIn, 1)) {
+      if (MoveRotationServo(RotationIn, 1, false)) {
         CaseStep = Step160_PickA_CloseClamp;
       }
       break;
@@ -642,10 +642,11 @@ void loop() {
       if (transit) {
         Serial.println("clampIn");
       }
-      MoveClampServo(ClampClose, 1);
-      isHoldingLP = true;
-      //if (next) {
-      CaseStep = Step170_PickA_StepperPickTopPos;
+      if (MoveClampServo(ClampClose, 1)) {
+        isHoldingLP = true;
+        //if (next) {
+        CaseStep = Step170_PickA_StepperPickTopPos;
+      }
       //}
       break;
 
@@ -683,7 +684,7 @@ void loop() {
       if (transit) {
         Serial.println("rotArmPickOutwards");
       }
-      if (MoveRotationServo(RotationOutFront, 1)) {
+      if (MoveRotationServo(RotationOutFront, 1, false)) {
         CaseStep = Step195_PickA_TiltPickVertical;
       }
       break;
@@ -735,7 +736,7 @@ void loop() {
       if (transit) {
         Serial.println("rotArmPickPos1");
       }
-      if (MoveRotationServo(RotationOutB, 2)) {
+      if (MoveRotationServo(RotationOutB, 2, false)) {
         CaseStep = Step230_PickB_StepperBottomPos;
       }
 
@@ -787,7 +788,7 @@ void loop() {
       if (transit) {
         Serial.println("rotArmPickPos2");
       }
-      if (MoveRotationServo(RotationPos2B, 1)) {
+      if (MoveRotationServo(RotationPos2B, 1, false)) {
         CaseStep = Step270_PickB_StepperPickPos2;
       }
 
@@ -812,7 +813,7 @@ void loop() {
       if (transit) {
         Serial.println("rotArmPickPos2");
       }
-      if (MoveRotationServo(RotationIn, 1)) {
+      if (MoveRotationServo(RotationIn, 1, false)) {
         CaseStep = Step290_PickB_CloseClamp;
       }
       break;
@@ -823,9 +824,10 @@ void loop() {
       if (transit) {
         Serial.println("clampIn");
       }
-      MoveClampServo(ClampClose, 2);
-      isHoldingLP = true;
-      CaseStep = Step291_PickB_StepperPickTopPos;
+      if (MoveClampServo(ClampClose, 2)) {
+        isHoldingLP = true;
+        CaseStep = Step291_PickB_StepperPickTopPos;
+      }
 
       break;
 
@@ -858,7 +860,7 @@ void loop() {
       if (transit) {
         Serial.println("rotArmPickOutwards");
       }
-      if (MoveRotationServo(RotationOutFront, 1)) {
+      if (MoveRotationServo(RotationOutFront, 1, false)) {
         CaseStep = Step295_PickB_TiltPickVertical;
       }
 
@@ -907,7 +909,7 @@ void loop() {
       if (transit) {
         Serial.println("rotArmPlaceIn");
       }
-      if (MoveRotationServo(RotationIn, 1)) {
+      if (MoveRotationServo(RotationIn, 1, false)) {
         CaseStep = Step330_PlaceA_StepperPlaceCenterPin;
       }
 
@@ -929,7 +931,7 @@ void loop() {
       if (transit) {
         Serial.println("RotShakeOnPin");
       }
-      ShakeRotation(RotationIn);
+      ShakeRotation(RotationIn, 3);
       //CaseStep = Step350_PlaceA_StepperPlaceBottomPos;
       CaseStep = Step360_PlaceA_ClampOpen;
 
@@ -953,9 +955,10 @@ void loop() {
       if (transit) {
         Serial.println("ClampOpen");
       }
-      MoveClampServo(ClampOpen, 2);
-      isHoldingLP = false;
-      CaseStep = Step370_PlaceA_RotArmPlaceOutwards;
+      if (MoveClampServo(ClampOpen, 2)) {
+        isHoldingLP = false;
+        CaseStep = Step370_PlaceA_RotArmPlaceOutwards;
+      }
 
       break;
 
@@ -964,7 +967,7 @@ void loop() {
       if (transit) {
         Serial.println("RotArmPlaceOutwards");
       }
-      if (MoveRotationServo(RotationOutFront, 1)) {
+      if (MoveRotationServo(RotationOutFront, 1, false)) {
         CaseStep = Step380_PlaceA_TiltPlaceVertical;
       }
 
@@ -1014,7 +1017,7 @@ void loop() {
       if (transit) {
         Serial.println("RotArmPlaceBIn");
       }
-      if (MoveRotationServo(RotationIn, 1)) {
+      if (MoveRotationServo(RotationIn, 1, false)) {
         CaseStep = Step430_PlaceB_StepperPlaceBottomPos;
       }
 
@@ -1036,7 +1039,7 @@ void loop() {
       if (transit) {
         Serial.println("RotArmShakeOnPin");
       }
-      ShakeRotation(RotationIn);
+      ShakeRotation(RotationIn, 3);
       CaseStep = Step450_PlaceB_ClampOpen;
 
       break;
@@ -1046,9 +1049,10 @@ void loop() {
       if (transit) {
         Serial.println("ClampOpen");
       }
-      MoveClampServo(ClampOpen, 2);
-      isHoldingLP = false;
-      CaseStep = Step460_PlaceB_RotArmPlaceRelease;
+      if (MoveClampServo(ClampOpen, 2)) {
+        isHoldingLP = false;
+        CaseStep = Step460_PlaceB_RotArmPlaceRelease;
+      }
 
       break;
 
@@ -1057,7 +1061,7 @@ void loop() {
       if (transit) {
         Serial.println("RotArmPlaceRelease");
       }
-      if (MoveRotationServo(RotationOutB, 1)) {
+      if (MoveRotationServo(RotationOutB, 1, false)) {
         CaseStep = Step470_PlaceB_StepperPlaceTopPos;
       }
 
@@ -1079,7 +1083,7 @@ void loop() {
       if (transit) {
         Serial.println("RotArmPlaceBFront");
       }
-      if (MoveRotationServo(RotationOutFront, 2)) {
+      if (MoveRotationServo(RotationOutFront, 2, false)) {
         CaseStep = Step490_PlaceB_TiltPlaceVertical;
       }
 
@@ -1160,7 +1164,7 @@ void loop() {
       if (transit) {
         Serial.println("RotateIn");
       }
-      if (MoveRotationServo(RotationPos1B, 2)) {  //rotation Pos1 B-side is same as angle of pin in rack
+      if (MoveRotationServo(RotationPos1B, 2, false)) {  //rotation Pos1 B-side is same as angle of pin in rack
         CaseStep = Step550_PickRack_CloseClamp;
       }
       break;
@@ -1170,8 +1174,9 @@ void loop() {
       if (transit) {
         Serial.println("CloseClamp");
       }
-      MoveClampServo(ClampClose, 2);
-      CaseStep = Step560_PickRack_StepperPickTop;
+      if (MoveClampServo(ClampClose, 2)) {
+        CaseStep = Step560_PickRack_StepperPickTop;
+      }
       break;
 
 
@@ -1190,7 +1195,7 @@ void loop() {
       if (transit) {
         Serial.println("RotateOut");
       }
-      if (MoveRotationServo(RotationOutFront, 2)) {
+      if (MoveRotationServo(RotationOutFront, 2, false)) {
         CaseStep = Step580_PickRack_StepperToClearancePos;
       }
       break;
@@ -1300,7 +1305,7 @@ void loop() {
       if (transit) {
         Serial.println("RotateIn");
       }
-      if (MoveRotationServo(RotationPos1B, 2)) {
+      if (MoveRotationServo(RotationPos1B, 2, false)) {
         CaseStep = Step630_PlaceRack_StepperBottomPos;
       }
       break;
@@ -1320,7 +1325,7 @@ void loop() {
       if (transit) {
         Serial.println("RotArmShakeOnPin");
       }
-      ShakeRotation(RotationPos1B);
+      ShakeRotation(RotationPos1B, 3);
       CaseStep = Step640_PlaceRack_OpenClamp;
       break;
 
@@ -1329,8 +1334,9 @@ void loop() {
       if (transit) {
         Serial.println("OpenClamp");
       }
-      MoveClampServo(ClampOpen, 2);
-      CaseStep = Step650_PlaceRack_RotateOut;
+      if (MoveClampServo(ClampOpen, 2)) {
+        CaseStep = Step650_PlaceRack_RotateOut;
+      }
       break;
 
 
@@ -1338,7 +1344,7 @@ void loop() {
       if (transit) {
         Serial.println("RotateOut");
       }
-      if (MoveRotationServo(RotationOutFront, 2)) {
+      if (MoveRotationServo(RotationOutFront, 2, false)) {
         CaseStep = Step660_PlaceRack_StepperToClearancePos;
       }
       break;
@@ -1392,10 +1398,10 @@ void loop() {
         digitalWrite(rpmPin, HIGH);
       }
       //TODO fix toneArmRoutine
-      //startPlay();
-      delay(1000);  //pretent toneArm
-      subroutineDone = true;
-
+      startPlay();
+      //delay(1000);  //pretent toneArm
+      //subroutineDone = true;
+      paused = false;
       if (subroutineDone) {
         Serial.println("STARTED");
         subroutineDone = false;
@@ -1413,9 +1419,9 @@ void loop() {
         digitalWrite(STOP, HIGH);
       }
       //TODO fix toneArmRoutine
-      //StopPlay();
-      delay(1000);
-      subroutineDone = true;
+      StopPlay();
+      //delay(1000);
+      //subroutineDone = true;
       paused = false;  //in case it gets stopped after pause
       if (subroutineDone) {
         if (stopped) {
@@ -1532,7 +1538,6 @@ void HomeStepper() {
 
 
 void homingSequence() {
-
   stepper.setMaxSpeed(maxVel);  //200mm/s
   stepper.setAcceleration(maxVel);
   stepper.setSpeed(-1000);  //homing up
@@ -1556,13 +1561,13 @@ void homingSequence() {
     stepperHomed = true;
   }
 
-  MoveArmHeightServo(DOWN, 1);
+  while (!MoveArmHeightServo(DOWN, 1)) {}
   //toneArmHeight.write(DOWN);    //DOWN
-  MoveArmPosServo(BASE, 1);
+  while(!MoveArmPosServo(BASE, 1));
   //toneArmPos.write(BASE);     //base position
-  MoveClampServo(ClampOpen, 1);
+  while (!MoveClampServo(ClampOpen, 1)) {}
   //Clamp.write(ClampOpen);       //loosen the clamp
-  while (!MoveRotationServo(RotationOutFront, 1)) {}  //wait until in pos
+  while (!MoveRotationServo(RotationOutFront, 1, false)) {}  //wait until in pos
   //Rotation.write(RotationOut);  //~ middle
   //delay(250);                   //wait for it to be outwards at least a bit, NOT NEEDED WITH NEW FUNCTIONS
   while (!MoveTiltServo(TiltVertical, 1)) {}  //wait until in pos
