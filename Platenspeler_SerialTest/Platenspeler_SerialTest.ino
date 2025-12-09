@@ -30,7 +30,7 @@ const int TiltEEPROMAddress = 1;
 const int ClampEEPROMAddress = 2;
 const int ArmHeightEEPROMAddress = 3;
 const int ArmPosEEPROMAddress = 4;
-const int StepperEEPROMAddress = 5;
+const int StepperEEPROMAddress = 6; //armPos is now an INT, so 2 bytes. leave byte 5 free as well
 
 int rpmPin = RPM33;
 

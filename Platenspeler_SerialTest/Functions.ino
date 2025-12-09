@@ -17,7 +17,7 @@ bool MoveRotationServo(byte pos, byte stepSize, bool limitArmYpos) {
     //for (byte interimPos = RotStoredPos; interimPos < pos; interimPos += stepSize) {
     Rotation.write(RotStoredPos);
     //RotStoredPos = interimPos;
-    delay(10);
+    delay(40);
     //}
 
   } else if (RotStoredPos >= pos + stepSize) {  //curent position > GoToPosition
@@ -26,7 +26,7 @@ bool MoveRotationServo(byte pos, byte stepSize, bool limitArmYpos) {
     //for (byte interimPos = RotStoredPos; interimPos > pos; interimPos -= stepSize) {
     Rotation.write(RotStoredPos);
     //RotStoredPos = rotInterimPos;
-    delay(10);
+    delay(40);
 
   } else if ((RotStoredPos > pos - stepSize && RotStoredPos < pos + stepSize) || RotStoredPos == pos) {  //is in closest position it can reach with set stepSize
     //write pos last time in case stepSize does not end at pos exactly
@@ -72,7 +72,7 @@ bool MoveTiltServo(byte pos, byte stepSize) {
     //for (byte interimPos = TiltStoredPos; interimPos < pos; interimPos += stepSize) {
     Tilt.write(TiltStoredPos);
     //TiltStoredPos = interimPos;
-    delay(10);
+    delay(40);
     //}
 
   } else if (TiltStoredPos >= pos + stepSize) {
@@ -81,7 +81,7 @@ bool MoveTiltServo(byte pos, byte stepSize) {
     //for (byte interimPos = TiltStoredPos; interimPos > pos; interimPos -= stepSize) {
     Tilt.write(TiltStoredPos);
     //TiltStoredPos = interimPos;
-    delay(10);
+    delay(40);
     //}
   } else if ((TiltStoredPos > pos - stepSize && TiltStoredPos < pos + stepSize) || TiltStoredPos == pos) {  //is in closest position it can reach with set stepSize
     //write pos last time in case stepSize does not end at pos exactly
@@ -92,7 +92,7 @@ bool MoveTiltServo(byte pos, byte stepSize) {
   if (TiltInPos) {
     TiltStoredPos = pos;
     //write position back to EEPROM after move
-    EEPROM.update(RotationEEPROMAddress, RotStoredPos);
+    EEPROM.update(RotationEEPROMAddress, TiltStoredPos);
   }
 
   //Serial.print("Position stored: ");
@@ -122,7 +122,7 @@ bool MoveClampServo(byte pos, byte stepSize) {
   } else if (ClampStoredPos >= pos + stepSize) {
     //move backward
     ClampStoredPos -= stepSize;
-    Tilt.write(ClampStoredPos);
+    Clamp.write(ClampStoredPos);
     delay(50);
   } else if ((ClampStoredPos > pos - stepSize && ClampStoredPos < pos + stepSize) || ClampStoredPos == pos) {
     //last step
