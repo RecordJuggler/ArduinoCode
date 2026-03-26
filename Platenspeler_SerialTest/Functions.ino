@@ -38,13 +38,15 @@ bool MoveRotationServo(byte pos, byte stepSize, bool limitArmYpos) {
     RotStoredPos = pos;
     //write position back to EEPROM after move
     EEPROM.update(RotationEEPROMAddress, RotStoredPos);
+    Serial.print("RotPos updated: ");
+    Serial.println(RotStoredPos);
   }
 
   if (limitArmYpos) {
     //if (calculateArmYpos(RotStoredPos, TiltStoredPos) < -100) {
-      //tilt to prevent more offset
-      //Serial.println(TiltAngle(RotStoredPos, -100));
-      MoveTiltServo(TiltAngle(RotStoredPos, -100), 1);
+    //tilt to prevent more offset
+    //Serial.println(TiltAngle(RotStoredPos, -100));
+    MoveTiltServo(TiltAngle(RotStoredPos, -100), 1);
     //}
   }
 
@@ -92,7 +94,8 @@ bool MoveTiltServo(byte pos, byte stepSize) {
   if (TiltInPos) {
     TiltStoredPos = pos;
     //write position back to EEPROM after move
-    EEPROM.update(RotationEEPROMAddress, TiltStoredPos);
+    EEPROM.update(TiltEEPROMAddress, TiltStoredPos);
+    Serial.println("TiltPos updated");
   }
 
   //Serial.print("Position stored: ");
@@ -135,6 +138,8 @@ bool MoveClampServo(byte pos, byte stepSize) {
     ClampStoredPos = pos;
     //write position back to EEPROM after move
     EEPROM.update(ClampEEPROMAddress, ClampStoredPos);
+    Serial.println("ClampPos updated");
+
   }
 
   //Serial.print("Position stored: ");
@@ -175,6 +180,7 @@ bool MoveArmHeightServo(byte pos, byte stepSize) {
     ArmHeightStoredPos = pos;
     //write position back to EEPROM after move
     EEPROM.update(ArmHeightEEPROMAddress, ArmHeightStoredPos);
+    Serial.println("ArmHeightPos updated");
   }
   //Serial.print("Position stored: ");
   //Serial.println(ArmHeightStoredPos);
@@ -187,24 +193,32 @@ bool ArmPosInPos = false;
 bool MoveArmPosServo(int pos, byte stepSize) {
   ArmPosInPos = false;
 
+  //pos is in degrees, stepsize in microseconds
+  int microPos = map(pos, 0, 180, 544, 2400);  //setpoint position in microseconds
+
+
   if (!ServoPositionKnown) {
     ArmPosStoredPos = EEPROM.read(ArmPosEEPROMAddress);
   }
 
-  if (ArmPosStoredPos <= pos - stepSize) {
+  int currentMicroPos = map(ArmPosStoredPos, 0, 180, 544, 2400);  //current position in microseconds
+
+
+  if (currentMicroPos <= microPos - stepSize) {
     //move forward
-    ArmPosStoredPos += stepSize;
-    toneArmPos.writeMicroseconds(ArmPosStoredPos);
+    currentMicroPos += stepSize;
+    toneArmPos.writeMicroseconds(currentMicroPos);
     delay(5);
 
-  } else if (ArmPosStoredPos >= pos + stepSize) {
+  } else if (currentMicroPos >= microPos + stepSize) {
     //move backward
-    ArmPosStoredPos -= stepSize;
-    toneArmPos.writeMicroseconds(ArmPosStoredPos);
+    currentMicroPos -= stepSize;
+    toneArmPos.writeMicroseconds(currentMicroPos);
     delay(5);
 
-  } else if ((ArmPosStoredPos > pos - stepSize && ArmPosStoredPos < pos + stepSize) || ArmPosStoredPos == pos) {
+  } else if ((currentMicroPos > microPos - stepSize && currentMicroPos < microPos + stepSize) || currentMicroPos == microPos) {
     //write pos last time in case stepSize does not end at pos exactly
+    //can be in degrees instead of microseconds
     toneArmPos.write(pos);
     ArmPosInPos = true;
   }
@@ -213,7 +227,12 @@ bool MoveArmPosServo(int pos, byte stepSize) {
   if (ArmPosInPos) {
     ArmPosStoredPos = pos;
     //write position back to EEPROM after move
-    EEPROM.put(ArmPosEEPROMAddress, ArmPosStoredPos);
+    EEPROM.update(ArmPosEEPROMAddress, ArmPosStoredPos);
+    Serial.println("ToneArmPos updated");
+
+  } else {
+    ArmPosStoredPos = toneArmPos.read();  //update stored pos with last written servo angle in deg.
+
   }
 
   return ArmPosInPos;

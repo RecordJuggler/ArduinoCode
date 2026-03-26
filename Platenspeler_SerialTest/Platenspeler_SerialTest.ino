@@ -29,8 +29,8 @@ const int RotationEEPROMAddress = 0;
 const int TiltEEPROMAddress = 1;
 const int ClampEEPROMAddress = 2;
 const int ArmHeightEEPROMAddress = 3;
-const int ArmPosEEPROMAddress = 4;
-const int StepperEEPROMAddress = 6; //armPos is now an INT, so 2 bytes. leave byte 5 free as well
+const int ArmPosEEPROMAddress = 4;    //stored as byte (angle) but move with MicroSeconds
+const int StepperEEPROMAddress = 5;
 
 int rpmPin = RPM33;
 
@@ -163,7 +163,7 @@ bool isHoldingLP = false;
 
 //eeprom, stored data
 byte RotStoredPos, TiltStoredPos, ClampStoredPos, ArmHeightStoredPos = 0;
-int ArmPosStoredPos = 0;
+byte ArmPosStoredPos = 0;
 byte RackPosition = 0;  //which position in the rack we want to pick/place
 byte RackPositonOnPlayer = 0;
 byte futureRackPosition = 0;
@@ -174,7 +174,7 @@ bool paused = false;
 void setup() {
   Serial.begin(115200);
   // put your setup code here, to run once:
-
+  Serial.println("1");
   //read last known servo positions at startup
   if (!ServoPositionKnown) {
     RotStoredPos = EEPROM.read(RotationEEPROMAddress);
@@ -209,6 +209,7 @@ void setup() {
 
 
   Startup();
+  Serial.println("2");
 
   //homingSequence();
 
@@ -344,7 +345,7 @@ void loop() {
 
           } else if (message[1] == 'r') {
             //move rotation
-            while (!MoveRotationServo(number, 1, true)) {}
+            while (!MoveRotationServo(number, 1, number > RotStoredPos)) {}
             //Rotation.write(number);
 
           } else if (message[1] == 't') {
@@ -1525,7 +1526,7 @@ void HomeStepper() {
   prevMillis = millis();
   while (digitalRead(iEndStop) && millis() - prevMillis < 20000) {  //timeout of 20s
     //keep running up
-    Serial.println("stepper up");
+    //Serial.println("stepper up");
     stepper.runSpeed();
     //Counter += 1;
   }
@@ -1564,22 +1565,22 @@ void homingSequence() {
 
   while (!MoveArmHeightServo(DOWN, 1)) {}
   //toneArmHeight.write(DOWN);    //DOWN
-  while(!MoveArmPosServo(BASE, 1));
+
+  while(!MoveArmPosServo(BASE, 2)); //1 ws te klein om met microseconds te bewegen, blijft in loop hangen
+
   //toneArmPos.write(BASE);     //base position
   while (!MoveClampServo(ClampOpen, 1)) {}
+
   //Clamp.write(ClampOpen);       //loosen the clamp
   while (!MoveRotationServo(RotationOutFront, 1, false)) {}  //wait until in pos
+
   //Rotation.write(RotationOut);  //~ middle
   //delay(250);                   //wait for it to be outwards at least a bit, NOT NEEDED WITH NEW FUNCTIONS
   while (!MoveTiltServo(TiltVertical, 1)) {}  //wait until in pos
+
   //Tilt.write(TiltVertical);     //vertical
 
 
-
-
-  //Clamp.detach();
-  //Rotation.detach();
-  //Tilt.detach();
   if (!stepperHomed) {
     //home stepper
     HomeStepper();
