@@ -19,30 +19,30 @@
 
 
 enum toneHeight {
-  DOWN = 175,
-  UP = 80
+  DOWN = 150,
+  UP = 90
 } toneArmHeightEnum;
 
 
 //use writeMicroseconds?
 //write() maps 0-180 deg to 544-2400 microseconds
 enum tonePos {
-  BASE = 170, //micro 2297          //wiper in base position
-  BACKTOBASE = 145, //micro 2040    //position where ToneArm is right at base pos
-  START = 135,  //micro 1936        //start of LP
-  END = 0 //micro 544               //furthest place, where plate would be 
+  BASE = 180, //micro 2297          //wiper in base position
+  BACKTOBASE = 130, //micro 2040    //position where ToneArm is right at base pos
+  START = 93,  //micro 1936        //start of LP was 135
+  END = 110 //micro 544               //furthest place, where plate would be 
 } toneArmPosEnum;
 
 
 enum RotationPos {
   //determine correct angles for Rotation
-  RotationIn = 50,         //rotation where center of LP is on center of stack/player
+  RotationIn = 49,         //rotation where center of LP is on center of stack/player
   RotationOutFront = 130,  //rotation far enough out to freely tilt or move stepper on A side/front
   RotationOutB = 20,       //rotation far enough out to freely tilt or move stepper on B side
   RotationPos1A = 65,      //rotation where inside is just around LP A side
-  RotationPos2A = 58,      //rotation where tip is just around LP A side
+  RotationPos2A = 57,      //rotation where tip is just around LP A side
   RotationPos1B = 35,      //rotation where inside is just around LP B side
-  RotationPos2B = 40       //rotation where tip is just around LP B side
+  RotationPos2B = 45       //rotation where tip is just around LP B side
 } RotationEnum;
 
 enum ClampPos {
@@ -101,9 +101,9 @@ int StoragePositions[] = {
   430,  //[3] storage pos 3
   460,  //[4] storage pos 4
   487,  //[5] storage pos 5
-  521,  //[6] storage pos 6
+  518,  //[6] storage pos 6
   545,  //[7] storage pos 7
-  578,  //[8] storage pos 8
+  575,  //[8] storage pos 8
   603,  //[9] storage pos 9
 };
 

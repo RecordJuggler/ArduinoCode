@@ -29,7 +29,7 @@ const int RotationEEPROMAddress = 0;
 const int TiltEEPROMAddress = 1;
 const int ClampEEPROMAddress = 2;
 const int ArmHeightEEPROMAddress = 3;
-const int ArmPosEEPROMAddress = 4;    //stored as byte (angle) but move with MicroSeconds
+const int ArmPosEEPROMAddress = 4;  //stored as byte (angle) but move with MicroSeconds
 const int StepperEEPROMAddress = 5;
 
 int rpmPin = RPM33;
@@ -146,6 +146,8 @@ bool subroutineDone = false;
 bool running33RPM, running45RPM, RPOn, powerStatus, stopped = false;
 bool analogReadActive = false;  //to stop analogRead when just turning on the LP because the value peaks to 700 shortly
 
+int ArmPosInMicroSeconds = 0;
+
 //stepper values
 const int stepsPermm = 32;
 const int maxVel = 200 * stepsPermm;  //200mm/s
@@ -248,7 +250,10 @@ void loop() {
     message = "";
   }
 
-  if (CaseStep == jukePiCommand && !transit && writeQueueIndex > 0) {
+  if ((CaseStep == jukePiCommand
+       || CaseStep == Step500_PickRack_StepperPickRackPos
+       || CaseStep == Step600_PlaceRack_StepperPlaceTopPos)
+      && !transit && writeQueueIndex > 0) {
 
     message = messageQueue[0];
 
@@ -283,7 +288,16 @@ void loop() {
       Serial.println(RackPosition);
       Serial.println(sideToPlay);
 
-      if (RackPositonOnPlayer == 0) {
+      //only send rackpositions when in those steps
+      if (CaseStep == Step500_PickRack_StepperPickRackPos) {
+        CaseStep = Step500_PickRack_StepperPickRackPos;
+        sideToPlay = '\0';
+      } else if (CaseStep == Step600_PlaceRack_StepperPlaceTopPos) {
+        CaseStep = Step600_PlaceRack_StepperPlaceTopPos;
+        sideToPlay = '\0';
+      }
+
+      else if (RackPositonOnPlayer == 0) {
         CaseStep = Step500_PickRack_StepperPickRackPos;
       } else if (RackPositonOnPlayer == RackPosition) {
         //same plate that is already on player
@@ -365,7 +379,7 @@ void loop() {
 
           } else if (message[1] == 'i') {
             //move toneArm in/out
-            while(!MoveArmPosServo(number, 2)){}
+            while (!MoveArmPosServo(number, 2)) {}
             //toneArmPos.write(number);
           }
         }
@@ -396,12 +410,6 @@ void loop() {
         finish = true;
       }
 
-      if (CaseStep == Step500_PickRack_StepperPickRackPos         //step500, wait for rack pick position
-          || CaseStep == Step600_PlaceRack_StepperPlaceTopPos) {  //step600, wait for rack place position
-        if (message.toInt() > 0 && message.toInt() < 10) {
-          RackPosition = message.toInt();  //set Rack position, reset after 5xx and 6xx sequence
-        }
-      }
 
       if (message.equalsIgnoreCase("33")) {
         //33 RPM mode
@@ -461,7 +469,7 @@ void loop() {
   }
 
   //reset outputs after a small delay
-  if (millis() - commandActivated > 250) {  //wait for 250ms
+  if (millis() - commandActivated > 5000) {  //wait for 250ms
     //turn everything off
     //analogReadActive = true;
     digitalWrite(RPM33, LOW);
@@ -1115,7 +1123,7 @@ void loop() {
       if (transit) {
         Serial.println("StepperPickRackPos");
       }
-      if (RackPosition == 0) {
+      if (RackPosition == 0 && transit) {
         Serial.println("choose a storage position");
       }
       if (RackPosition != 0) {
@@ -1132,20 +1140,24 @@ void loop() {
         Serial.println("TiltHorizontal");
       }
       if (MoveTiltServo(TiltHorizontalA, 2)) {  //'A' side, open arm side towards rack
-        CaseStep = Step540_PickRack_RotateIn;
+        if (RackPosition != 1) {
+          CaseStep = Step540_PickRack_RotateIn;
+        } else {
+          CaseStep = step520_PickRack_RotateInPos1;
+        }
       }
-      //CaseStep = step520_PickRack_RotateInPos1;
       break;
 
-      /*
+
     case step520_PickRack_RotateInPos1:
       if (transit) {
         Serial.println("RotateInPos1");
       }
-      MoveRotationServo(RotationIn, 2);  //pos 1 where inner arm touches LP is same angle as middle of player
-      if (next) {
+      if (MoveRotationServo(RotationIn, 2, false))  //pos 1 where inner arm touches LP is same angle as middle of player
+      {
         CaseStep = Step530_PickRack_StepperPickPos2;
       }
+      //}
       break;
 
 
@@ -1153,14 +1165,14 @@ void loop() {
       if (transit) {
         Serial.println("StepperPickPos2");
       }
-      stepper.moveTo(StepperPos(StoragePositions[RackPosition] - 5));  //move set 5mm up to line up outer arm with LP
+      stepper.moveTo(StepperPos(StoragePositions[RackPosition] - 5));  //move set 6mm up to line up outer arm with LP
       if (stepper.distanceToGo() == 0) {
-        if (next) {
-          CaseStep = Step540_PickRack_RotateIn;
-        }
+        //if (next) {
+        CaseStep = Step540_PickRack_RotateIn;
+        //}
       }
       break;
-*/
+
 
     case Step540_PickRack_RotateIn:
       if (transit) {
@@ -1251,12 +1263,12 @@ void loop() {
       if (transit) {
         Serial.println("StepperPlaceTopPos");
       }
-      if (RackPosition == 0) {
+      if (RackPosition == 0 && transit) {
         Serial.println("choose a storage position");
       }
       if (RackPosition != 0) {
-        if ((StoragePositions[RackPosition] - 12) > 420) {                  //CAN ONLY DO THIS ON 420 OR PHYSICALLY LOWER WHEN TILT IS VERTICAL!
-          stepper.moveTo(StepperPos(StoragePositions[RackPosition] - 12));  //stepper to set position of rack, but with offset to top
+        if ((StoragePositions[RackPosition] - 14) > 420) {                  //CAN ONLY DO THIS ON 420 OR PHYSICALLY LOWER WHEN TILT IS VERTICAL!
+          stepper.moveTo(StepperPos(StoragePositions[RackPosition] - 14));  //stepper to set position of rack, but with offset to top
           if (stepper.distanceToGo() == 0) {
             CaseStep = Step610_PlaceRack_TiltHorizontally;
           }
@@ -1286,7 +1298,7 @@ void loop() {
 
 
     case Step603_PlaceRack_StepperPlaceTopPos:
-      stepper.moveTo(StepperPos(StoragePositions[RackPosition] - 12));
+      stepper.moveTo(StepperPos(StoragePositions[RackPosition] - 14));
       if (stepper.distanceToGo() == 0) {
         CaseStep = Step620_PlaceRack_RotateIn;
       }
@@ -1389,6 +1401,9 @@ void loop() {
     //start rotating at set RPM and move arm on top of LP
     case startPlaying:
       if (transit) {
+        commandActivated = millis();
+        digitalWrite(STOP, LOW);
+        analogReadActive = true;
         if (!paused) {
           subroutineSteps = 0;
           subroutineDone = false;
@@ -1415,10 +1430,16 @@ void loop() {
 
     //stop the player from playing and move arm away from LP. ready for LP to be picked up afterwards
     case stopPlaying:  //from either JukePi or player end sensor
+
       if (transit) {
+        commandActivated = millis();
+        analogReadActive = false;
+        digitalWrite(rpmPin, LOW);
+        Serial.println("StopPlaying");
         subroutineSteps = 0;
         subroutineDone = false;
         digitalWrite(STOP, HIGH);
+        Serial.println("Stop HIGH");
       }
       //TODO fix toneArmRoutine
       StopPlay();
@@ -1437,7 +1458,12 @@ void loop() {
 
 
     case pause:  //pause playing
+      commandActivated = millis();
+      digitalWrite(rpmPin, LOW);
+      Serial.println("Pause");
       digitalWrite(STOP, HIGH);
+      Serial.println("Stop HIGH");
+
       paused = true;
       CaseStep = jukePiCommand;
       break;
@@ -1499,7 +1525,8 @@ void Startup() {
   Tilt.write(TiltStoredPos);
   Clamp.write(ClampStoredPos);
   toneArmHeight.write(ArmHeightStoredPos);
-  toneArmPos.writeMicroseconds(ArmPosStoredPos);
+  ArmPosInMicroSeconds = map(ArmPosStoredPos, 0, 180, 544, 2400);
+  toneArmPos.writeMicroseconds(ArmPosInMicroSeconds);
 
   //attach servo's
   Rotation.attach(rotPin);
@@ -1562,21 +1589,27 @@ void homingSequence() {
     HomeStepper();
     stepperHomed = true;
   }
-
+  Serial.println("Homing step 1");
   while (!MoveArmHeightServo(DOWN, 1)) {}
   //toneArmHeight.write(DOWN);    //DOWN
+  Serial.println("Homing step 2");
 
-  while(!MoveArmPosServo(BASE, 2)); //1 ws te klein om met microseconds te bewegen, blijft in loop hangen
+  while (!MoveArmPosServo(BASE, 10))
+    ;  //1 ws te klein om met microseconds te bewegen, blijft in loop hangen
+  Serial.println("Homing step 3");
 
   //toneArmPos.write(BASE);     //base position
   while (!MoveClampServo(ClampOpen, 1)) {}
+  Serial.println("Homing step 4");
 
   //Clamp.write(ClampOpen);       //loosen the clamp
   while (!MoveRotationServo(RotationOutFront, 1, false)) {}  //wait until in pos
+  Serial.println("Homing step 5");
 
   //Rotation.write(RotationOut);  //~ middle
   //delay(250);                   //wait for it to be outwards at least a bit, NOT NEEDED WITH NEW FUNCTIONS
   while (!MoveTiltServo(TiltVertical, 1)) {}  //wait until in pos
+  Serial.println("Homing step 6");
 
   //Tilt.write(TiltVertical);     //vertical
 
@@ -1588,4 +1621,5 @@ void homingSequence() {
     stepper.setSpeed(-250);  //lower speed
     HomeStepper();
   }
+  Serial.println("Homing step 7");
 }
